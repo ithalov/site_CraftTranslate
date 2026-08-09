@@ -1,0 +1,14 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_APP_NAME?: string;
+  readonly VITE_SUPABASE_URL?: string;
+  readonly VITE_SUPABASE_ANON_KEY?: string;
+  readonly VITE_DISCORD_CLIENT_ID?: string;
+  readonly VITE_DISCORD_REDIRECT_URI?: string;
+  readonly VITE_BASE_PATH?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

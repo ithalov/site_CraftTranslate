@@ -1,0 +1,168 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="globeGrad" x1="240" y1="220" x2="768" y2="820" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2da7ff" />
+      <stop offset="0.55" stop-color="#1954ff" />
+      <stop offset="1" stop-color="#0f1d4d" />
+    </linearGradient>
+    <linearGradient id="limeGrad" x1="270" y1="430" x2="472" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d8ff5c" />
+      <stop offset="1" stop-color="#58d929" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="540" y1="420" x2="760" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#71f0ff" />
+      <stop offset="1" stop-color="#29a9ff" />
+    </linearGradient>
+    <linearGradient id="wordGrad" x1="160" y1="720" x2="880" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.45" stop-color="#dfe7ff" />
+      <stop offset="1" stop-color="#49f2ff" />
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18" result="blur" />
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="0 0 0 0 0.20 0 0 0 0 0.88 0 0 0 0 1 0 0 0 0.7 0"
+      />
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="10" flood-color="#00102d" flood-opacity="0.85" />
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="192" fill="#050812" />
+  <circle cx="512" cy="384" r="242" fill="url(#globeGrad)" filter="url(#glow)" />
+  <path
+    d="M324 250C390 198 459 172 531 172C617 172 693 206 748 257"
+    stroke="#9ef7ff"
+    stroke-width="34"
+    stroke-linecap="round"
+    opacity="0.8"
+  />
+  <path
+    d="M287 412C312 303 390 216 512 182"
+    stroke="#ffffff"
+    stroke-width="22"
+    stroke-linecap="round"
+    opacity="0.12"
+  />
+  <path
+    d="M737 310C778 383 785 451 758 525"
+    stroke="#ffffff"
+    stroke-width="22"
+    stroke-linecap="round"
+    opacity="0.14"
+  />
+
+  <g opacity="0.95">
+    <path d="M266 374L318 330L338 364L286 408Z" fill="url(#limeGrad)" />
+    <path d="M324 314L374 272L393 306L343 350Z" fill="#75f624" />
+    <path d="M377 262L427 223L446 257L396 296Z" fill="#4dd11f" />
+    <path d="M650 250L699 289L679 323L630 284Z" fill="#45e4ff" />
+    <path d="M705 302L757 345L737 378L685 336Z" fill="url(#cyanGrad)" />
+    <path d="M762 361L815 406L795 439L743 394Z" fill="#2fa9ff" />
+  </g>
+
+  <g filter="url(#shadow)">
+    <path
+      d="M389 278H468V546H389V278Z"
+      fill="white"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M340 278H420L420 349H468V417H420V546H340V278Z"
+      fill="#f8fbff"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M458 278H594C665 278 710 318 710 376C710 422 681 453 641 468L708 546H612L553 482H525V546H458V278Z"
+      fill="url(#wordGrad)"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M525 345H584C609 345 625 357 625 377C625 398 607 412 581 412H525V345Z"
+      fill="#0f1d4d"
+      opacity="0.12"
+    />
+  </g>
+
+  <path d="M258 526L370 570L258 614Z" fill="url(#limeGrad)" filter="url(#shadow)" />
+  <path d="M766 526L654 570L766 614Z" fill="url(#cyanGrad)" filter="url(#shadow)" />
+
+  <g filter="url(#shadow)">
+    <path
+      d="M162 670H314L282 782H130L162 670Z"
+      fill="#edf2ff"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M305 670H448L415 782H273L305 670Z"
+      fill="#ffffff"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M433 670H582L549 782H401L433 670Z"
+      fill="url(#limeGrad)"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M568 670H719L686 782H535L568 670Z"
+      fill="url(#cyanGrad)"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M705 670H872L839 782H672L705 670Z"
+      fill="#31b6ff"
+      stroke="#0c204f"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  <text
+    x="510"
+    y="760"
+    text-anchor="middle"
+    font-family="Space Grotesk, Inter, Arial, sans-serif"
+    font-size="128"
+    font-weight="700"
+    fill="none"
+    stroke="#0c204f"
+    stroke-width="16"
+    paint-order="stroke"
+    letter-spacing="-6"
+  >
+    CraftTranslate
+  </text>
+  <text
+    x="510"
+    y="760"
+    text-anchor="middle"
+    font-family="Space Grotesk, Inter, Arial, sans-serif"
+    font-size="128"
+    font-weight="700"
+    fill="url(#wordGrad)"
+    letter-spacing="-6"
+  >
+    CraftTranslate
+  </text>
+</svg>

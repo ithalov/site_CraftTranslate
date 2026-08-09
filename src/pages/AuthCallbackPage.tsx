@@ -1,0 +1,86 @@
+import { useEffect, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/Card';
+import { RouteLoadingScreen } from '@/components/layout/RouteLoadingScreen';
+import { useAuth } from '@/hooks/useAuth';
+import { paths } from '@/navigation/paths';
+import { supabase, isSupabaseConfigured } from '@/services/supabase';
+
+export function AuthCallbackPage() {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [error, setError] = useState<string | null>(null);
+  const [consumed, setConsumed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function finalize() {
+      if (!supabase || !isSupabaseConfigured) {
+        setError('Supabase is not configured in this environment.');
+        setConsumed(true);
+        return;
+      }
+
+      const currentUrl = new URL(window.location.href);
+      const code = currentUrl.searchParams.get('code');
+      const authError = currentUrl.searchParams.get('error_description') ?? currentUrl.searchParams.get('error');
+
+      if (authError) {
+        setError(authError);
+        setConsumed(true);
+        return;
+      }
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!active) {
+          return;
+        }
+
+        if (exchangeError) {
+          setError(exchangeError.message);
+          setConsumed(true);
+          return;
+        }
+      }
+
+      if (active) {
+        setConsumed(true);
+        navigate(paths.dashboard, { replace: true });
+      }
+    }
+
+    void finalize();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
+  if (isAuthenticated && consumed && !error) {
+    return <Navigate to={paths.dashboard} replace state={{ from: location }} />;
+  }
+
+  if (error) {
+    return (
+      <div className="grid min-h-[70vh] place-items-center px-6">
+        <Card className="w-full max-w-xl p-8 text-center">
+          <p className="pixel-label text-[10px] text-[#566172]">Discord OAuth</p>
+          <h1 className="minecraft-title mt-3 text-4xl text-[#101114]">Login failed</h1>
+          <p className="mt-4 text-sm leading-7 text-[#566172]">{error}</p>
+          <button
+            type="button"
+            onClick={() => navigate(paths.login, { replace: true })}
+            className="block-button mt-6 px-5 py-3 text-sm"
+          >
+            Return to login
+          </button>
+        </Card>
+      </div>
+    );
+  }
+
+  return <RouteLoadingScreen />;
+}
