@@ -48,7 +48,7 @@ export function AuthCallbackPage() {
 
       if (active) {
         setConsumed(true);
-        navigate(paths.dashboard, { replace: true });
+        navigate(paths.profile, { replace: true });
       }
     }
 
@@ -60,7 +60,7 @@ export function AuthCallbackPage() {
   }, [navigate]);
 
   if (isAuthenticated && consumed && !error) {
-    return <Navigate to={paths.dashboard} replace state={{ from: location }} />;
+    return <Navigate to={paths.profile} replace state={{ from: location }} />;
   }
 
   if (error) {
