@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ChatTranslate Web
 
 Base do ChatTranslate Web com React, TypeScript, Vite, Tailwind CSS, Supabase e GitHub Pages.
@@ -45,3 +46,7 @@ docs/
 supabase/
   migrations/
 ```
+=======
+# site_CraftTranslate
+Website CraftTranslate
+>>>>>>> 0606088460e712cba4b0ab2de20f1ab9f222e04b
