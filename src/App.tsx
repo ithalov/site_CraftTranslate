@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { getRouterBasename } from '@/navigation/basename';
 import { paths } from '@/navigation/paths';
 import { HomePage } from '@/pages/HomePage';
+import { StatusPage } from '@/pages/StatusPage';
 import { LanguagesPage } from '@/pages/LanguagesPage';
 import { TranslatePage } from '@/pages/TranslatePage';
 import { ReviewPage } from '@/pages/ReviewPage';
@@ -18,6 +19,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { AdminPage } from '@/pages/AdminPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { OnboardingLanguagesPage } from '@/pages/OnboardingLanguagesPage';
+import { PublicProfilePage } from '@/pages/PublicProfilePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export default function App() {
@@ -28,8 +30,10 @@ export default function App() {
           <Routes>
             <Route element={<PublicLayout />}>
               <Route index element={<HomePage />} />
+              <Route path={paths.status} element={<StatusPage />} />
               <Route path={paths.login} element={<LoginPage />} />
               <Route path={paths.authCallback} element={<AuthCallbackPage />} />
+              <Route path={paths.publicProfile} element={<PublicProfilePage />} />
             </Route>
 
             <Route element={<ProtectedRoute />}>

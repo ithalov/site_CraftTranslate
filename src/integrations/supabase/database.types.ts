@@ -1002,6 +1002,70 @@ export type Database = {
           username: string | null;
         }[];
       };
+      public_leaderboard_rankings: {
+        Args: {
+          leaderboard_period?: string;
+        };
+        Returns: {
+          approval_rate: number;
+          avatar_url: string | null;
+          badges: Json;
+          badges_count: number;
+          contribution_points: number;
+          display_name: string | null;
+          leaderboard_kind: string;
+          period: string;
+          primary_language_code: string | null;
+          primary_language_emoji: string | null;
+          primary_language_name: string | null;
+          primary_language_native_name: string | null;
+          rank: number;
+          ranking_score: number;
+          reputation_score: number;
+          role: string;
+          reviews_count: number;
+          approved_reviews_count: number;
+          approved_suggestions_count: number;
+          total_xp: number;
+          translations_count: number;
+          user_id: string;
+          username: string | null;
+        }[];
+      };
+      public_status_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          collaborators: number;
+          official_percent: number;
+          reviewed_percent: number;
+          total_languages: number;
+          total_reviews: number;
+          total_strings: number;
+          total_translations: number;
+          translated_percent: number;
+        }[];
+      };
+      public_status_language_coverage: {
+        Args: Record<string, never>;
+        Returns: {
+          active_moderators: number;
+          active_reviewers: number;
+          active_translators: number;
+          code: string;
+          direction: string;
+          emoji: string | null;
+          language_id: string;
+          name: string;
+          native_name: string;
+          official_count: number;
+          official_percent: number;
+          reviewed_count: number;
+          reviewed_percent: number;
+          total_strings: number;
+          translated_count: number;
+          translated_percent: number;
+        }[];
+      };
       public_profile_cards: {
         Args: Record<string, never>;
         Returns: {
@@ -1015,6 +1079,34 @@ export type Database = {
           reputation_score: number;
           role: string;
           reviews_count: number;
+          total_xp: number;
+          translations_count: number;
+          user_id: string;
+          username: string | null;
+        }[];
+      };
+      public_profile_page: {
+        Args: {
+          profile_handle: string;
+        };
+        Returns: {
+          approval_rate: number;
+          avatar_url: string | null;
+          badges: Json;
+          badges_count: number;
+          bio: string | null;
+          contribution_points: number;
+          display_name: string | null;
+          functions: Json;
+          languages: Json;
+          languages_count: number;
+          preferred_locale: string;
+          profile_level: number;
+          profile_state: string;
+          rank: number;
+          reputation_score: number;
+          reviews_count: number;
+          role: string;
           total_xp: number;
           translations_count: number;
           user_id: string;

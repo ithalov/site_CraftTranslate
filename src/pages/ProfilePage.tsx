@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { MetricCard } from '@/components/ui/MetricCard';
@@ -7,6 +8,8 @@ import { LanguagePreferencesEditor } from '@/components/profile/LanguagePreferen
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/services/supabase';
 import type { Database } from '@/integrations/supabase/database.types';
+import { buildPublicProfileHandle } from '@/utils/profilePaths';
+import { paths } from '@/navigation/paths';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ProfileSummary = Database['public']['Views']['public_profile_cards_view']['Row'];
@@ -98,6 +101,8 @@ export function ProfilePage() {
   const displayName = profile.display_name ?? profile.username ?? 'Unnamed player';
   const avatar =
     profile.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture ?? '';
+  const publicHandle = buildPublicProfileHandle(profile.username, profile.display_name, profile.user_id);
+  const publicProfilePath = publicHandle ? paths.publicProfile.replace(':handle', publicHandle) : '';
 
   return (
     <section className="grid gap-6">
@@ -204,6 +209,28 @@ export function ProfilePage() {
               </p>
             </div>
           </div>
+        </Card>
+
+        <Card className="p-6 md:p-8">
+          <p className="pixel-label text-[10px] text-[#566172]">Public profile</p>
+          <h2 className="minecraft-title mt-3 text-3xl text-[#101114]">Share your profile</h2>
+          <p className="mt-3 text-sm leading-7 text-[#566172]">
+            This is the public page other collaborators can open without seeing private account data.
+          </p>
+          <div className="mt-4 rounded-xl border-2 border-[#101114] bg-[#f7f8fb] p-4">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">Public URL</p>
+            <p className="mt-2 break-all text-sm font-semibold text-[#101114]">
+              {publicProfilePath || 'Not available'}
+            </p>
+          </div>
+          {publicProfilePath ? (
+            <Link
+              to={publicProfilePath}
+              className="block-button mt-5 inline-flex items-center justify-center px-5 py-3 text-sm"
+            >
+              Open public profile
+            </Link>
+          ) : null}
         </Card>
       </div>
 

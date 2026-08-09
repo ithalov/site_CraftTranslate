@@ -1,11 +1,13 @@
 export const paths = {
   home: '/',
+  status: '/status',
   languages: '/languages',
   translate: '/translate',
   review: '/review',
   glossary: '/glossary',
   leaderboard: '/leaderboard',
   profile: '/profile',
+  publicProfile: '/u/:handle',
   dashboard: '/dashboard',
   login: '/login',
   onboardingLanguages: '/onboarding/languages',

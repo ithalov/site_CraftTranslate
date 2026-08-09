@@ -2,6 +2,7 @@ import { paths } from '@/navigation/paths';
 
 export const publicNavItems = [
   { label: 'Home', to: paths.home },
+  { label: 'Status', to: paths.status },
   { label: 'Dashboard', to: paths.dashboard },
   { label: 'Login', to: paths.login }
 ];
