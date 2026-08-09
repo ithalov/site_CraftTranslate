@@ -76,11 +76,15 @@ Antes de depender do GitHub Pages, confirme que o site compila localmente:
 npm run build
 ```
 
+Esse comando gera a versão final do site na pasta `dist`. Se der erro aqui, não vale a pena subir para o GitHub ainda.
+
 Se quiser testar o resultado do build:
 
 ```bash
 npm run preview
 ```
+
+O `preview` abre uma versão local do que foi gerado pelo build, ajudando a conferir se as rotas e a tela de login continuam funcionando antes do deploy.
 
 ## 5. Como o deploy automático funciona
 
@@ -224,4 +228,3 @@ Depois disso:
 1. ative o GitHub Pages em **Settings > Pages**
 2. escolha **GitHub Actions**
 3. teste o site publicado
-

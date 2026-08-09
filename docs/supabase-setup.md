@@ -31,6 +31,11 @@ Quando o projeto terminar de criar, você vai precisar copiar dois dados:
 - a URL do projeto
 - a `anon key`
 
+Project URL
+https://xjpjyjiqdjngnlxqgoff.supabase.co/
+Key Publish
+sb_publishable_NbgytIMLTf0y6aSrKtTaNg_CmFgAlJU
+
 Esses são os únicos dados do Supabase que vão para o frontend.
 
 ### Onde encontrar
