@@ -116,22 +116,19 @@ Com isso, o próprio workflow do projeto passa a publicar o site.
 
 Como o site vai rodar em um subcaminho do GitHub Pages, a base precisa bater com o nome do repositório.
 
-Use:
+Defina a base do app assim:
 
 ```env
 VITE_BASE_PATH=/site_CraftTranslate/
 ```
 
-Esse valor já está alinhado com o workflow atual, que usa:
+Esse valor é necessário porque o site não vai rodar na raiz do domínio, e sim dentro do caminho do repositório no GitHub Pages.
+
+O workflow já monta isso automaticamente quando publica:
 
 ```yml
 VITE_BASE_PATH: /${{ github.event.repository.name }}/
 ```
-
-Ou seja:
-
-- no GitHub Pages final, a base vira `/site_CraftTranslate/`
-- no desenvolvimento local, normalmente fica `VITE_BASE_PATH=/`
 
 ## 8. URLs de callback que precisam bater com o deploy
 

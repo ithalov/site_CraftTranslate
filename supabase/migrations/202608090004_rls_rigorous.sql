@@ -152,12 +152,13 @@ as $$
     or exists (
       select 1
       from public.translation_suggestions ts
+      join public.translation_keys tk on tk.id = ts.translation_key_id
       where ts.id = suggestion_id
         and (
           public.has_language_role(ts.target_language_id, 'reviewer')
           or public.has_language_role(ts.target_language_id, 'language_moderator')
-          or public.has_language_role(ts.source_language_id, 'reviewer')
-          or public.has_language_role(ts.source_language_id, 'language_moderator')
+          or public.has_language_role(tk.source_language_id, 'reviewer')
+          or public.has_language_role(tk.source_language_id, 'language_moderator')
         )
     );
 $$;
