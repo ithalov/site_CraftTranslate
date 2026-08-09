@@ -4,9 +4,11 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ className, showWordmark = true }: BrandLogoProps) {
+  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
+
   return (
     <img
-      src="/logo.png"
+      src={logoSrc}
       alt="CraftTranslate"
       className={className}
       data-wordmark={showWordmark ? 'true' : 'false'}
