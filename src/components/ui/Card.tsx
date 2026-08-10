@@ -7,10 +7,13 @@ type CardProps = PropsWithChildren<{
 }>;
 
 export function Card({ className, elevated = false, children }: CardProps) {
+  const hasCustomBackground = className?.includes('bg-');
+
   return (
     <div
       className={classNames(
         'pixel-panel relative',
+        !hasCustomBackground && 'bg-white',
         elevated && 'shadow-soft',
         className
       )}

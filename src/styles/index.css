@@ -56,7 +56,7 @@ button, input, select, textarea { font: inherit; }
 @keyframes block-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes soft-pop { 0% { opacity: 0; transform: translateY(12px) scale(.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes shine-sweep { 0% { transform: translateX(-130%); } 100% { transform: translateX(190%); } }
-.pixel-panel { border: 2px solid #101114; border-radius: 14px; box-shadow: 6px 6px 0 #101114; background: #fff; }
+.pixel-panel { border: 2px solid #101114; border-radius: 14px; box-shadow: 6px 6px 0 #101114; }
 .pixel-panel::before { display: none; }
 .minecraft-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -.045em; text-transform: none; text-shadow: none; }
 .pixel-label { font-family: var(--font-display); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
