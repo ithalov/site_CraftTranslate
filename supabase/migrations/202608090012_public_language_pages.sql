@@ -1,5 +1,7 @@
 begin;
 
+drop function if exists public.public_language_page(text);
+
 create or replace function public.public_language_catalog()
 returns table (
   language_id uuid,
@@ -37,6 +39,35 @@ as $$
     from public.language_members lm
     where lm.is_active
     group by lm.language_id
+  ),
+  key_totals as (
+    select
+      tk.source_language_id as language_id,
+      count(*)::bigint as translation_keys
+    from public.translation_keys tk
+    group by tk.source_language_id
+  ),
+  suggestion_totals as (
+    select
+      ts.target_language_id as language_id,
+      count(*)::bigint as translation_suggestions,
+      count(*) filter (where ts.status = 'approved')::bigint as approved_suggestions
+    from public.translation_suggestions ts
+    group by ts.target_language_id
+  ),
+  glossary_totals as (
+    select
+      g.language_id,
+      count(*)::bigint as glossary_terms
+    from public.glossary g
+    group by g.language_id
+  ),
+  glossary_proposal_totals as (
+    select
+      gp.language_id,
+      count(*)::bigint as glossary_proposals
+    from public.glossary_proposals gp
+    group by gp.language_id
   )
   select
     c.language_id,
@@ -56,13 +87,17 @@ as $$
     c.active_translators,
     c.active_reviewers,
     c.active_moderators,
-    c.translation_keys,
-    c.translation_suggestions,
-    c.approved_suggestions,
-    c.glossary_terms,
-    c.glossary_proposals
+    coalesce(k.translation_keys, 0) as translation_keys,
+    coalesce(s.translation_suggestions, 0) as translation_suggestions,
+    coalesce(s.approved_suggestions, 0) as approved_suggestions,
+    coalesce(g.glossary_terms, 0) as glossary_terms,
+    coalesce(gp.glossary_proposals, 0) as glossary_proposals
   from public.public_status_language_coverage() c
   left join collaborators col on col.language_id = c.language_id
+  left join key_totals k on k.language_id = c.language_id
+  left join suggestion_totals s on s.language_id = c.language_id
+  left join glossary_totals g on g.language_id = c.language_id
+  left join glossary_proposal_totals gp on gp.language_id = c.language_id
   order by c.code asc, c.name asc;
 $$;
 

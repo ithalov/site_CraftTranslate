@@ -8,6 +8,7 @@ import { paths } from '@/navigation/paths';
 import {
   fetchReviewWorkspaceSession,
   submitReviewWorkspaceDecision,
+  type ReviewWorkspaceConfidence,
   type ReviewWorkspaceItem,
   type ReviewWorkspaceSession
 } from '@/services/reviewWorkspace';
@@ -50,6 +51,15 @@ type Copy = {
   needsChangesCount: string;
   rejected: string;
   compatible: string;
+  confidence: string;
+  confidenceRule: string;
+  confidenceLevel: string;
+  confidenceScore: string;
+  confidenceReviews: string;
+  confidenceAgreement: string;
+  confidenceTrust: string;
+  confidenceReports: string;
+  confidenceVerifiedReady: string;
   notesRequired: string;
   correctionRequired: string;
   noReviewHistory: string;
@@ -95,6 +105,15 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     needsChangesCount: 'Com ajustes',
     rejected: 'Rejeitadas',
     compatible: 'Compativel com sua funcao',
+    confidence: 'Confidence de traducao',
+    confidenceRule: 'Regra transparente: volume de revisoes validas + concordancia + reputacao dos revisores - reports abertos. Nao e IA.',
+    confidenceLevel: 'Nivel',
+    confidenceScore: 'Pontuacao',
+    confidenceReviews: 'Revisoes validas',
+    confidenceAgreement: 'Concordancia',
+    confidenceTrust: 'Confianca dos revisores',
+    confidenceReports: 'Reports abertos',
+    confidenceVerifiedReady: 'Pronto para VERIFIED',
     notesRequired: 'Um comentario e necessario para essa decisao.',
     correctionRequired: 'Digite uma sugestao corrigida para continuar.',
     noReviewHistory: 'Ainda sem historico de revisoes.',
@@ -138,6 +157,15 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     needsChangesCount: 'Needs changes',
     rejected: 'Rejected',
     compatible: 'Compatible with your role',
+    confidence: 'Translation confidence',
+    confidenceRule: 'Transparent rule: valid review volume + agreement + reviewer reputation - open reports. This is not AI.',
+    confidenceLevel: 'Level',
+    confidenceScore: 'Score',
+    confidenceReviews: 'Valid reviews',
+    confidenceAgreement: 'Agreement',
+    confidenceTrust: 'Reviewer trust',
+    confidenceReports: 'Open reports',
+    confidenceVerifiedReady: 'Ready for VERIFIED',
     notesRequired: 'A comment is required for this decision.',
     correctionRequired: 'Enter a correction suggestion to continue.',
     noReviewHistory: 'No review history yet.',
@@ -181,6 +209,15 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     needsChangesCount: 'Con cambios',
     rejected: 'Rechazadas',
     compatible: 'Compatible con tu rol',
+    confidence: 'Confianza de traduccion',
+    confidenceRule: 'Regla transparente: volumen de revisiones validas + acuerdo + reputacion de revisores - reports abiertos. No es IA.',
+    confidenceLevel: 'Nivel',
+    confidenceScore: 'Puntuacion',
+    confidenceReviews: 'Revisiones validas',
+    confidenceAgreement: 'Acuerdo',
+    confidenceTrust: 'Confianza de revisores',
+    confidenceReports: 'Reports abiertos',
+    confidenceVerifiedReady: 'Listo para VERIFIED',
     notesRequired: 'Se requiere un comentario para esta decision.',
     correctionRequired: 'Escribe una sugerencia corregida para continuar.',
     noReviewHistory: 'Aun no hay historial de revisiones.',
@@ -214,6 +251,35 @@ function formatTimestamp(value: string | null, locale: 'pt-BR' | 'en' | 'es') {
   }).format(date);
 }
 
+function formatStatusLabel(value: string) {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeConfidenceLevel(value: ReviewWorkspaceConfidence['confidence_level'] | undefined) {
+  const level = String(value ?? 'LOW').toUpperCase();
+
+  if (level === 'VERIFIED') {
+    return { label: 'VERIFIED', className: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-700' };
+  }
+
+  if (level === 'HIGH') {
+    return { label: 'HIGH', className: 'border-sky-500/30 bg-sky-500/15 text-sky-700' };
+  }
+
+  if (level === 'MEDIUM') {
+    return { label: 'MEDIUM', className: 'border-amber-500/30 bg-amber-500/15 text-amber-700' };
+  }
+
+  return { label: 'LOW', className: 'border-slate-400/30 bg-slate-200 text-slate-700' };
+}
+
+function formatPercent(value: number) {
+  const normalized = Number.isFinite(value) ? value : 0;
+  return `${normalized.toFixed(0)}%`;
+}
+
 export function ReviewPage() {
   const { locale } = useLocale();
   const copy = copyByLocale[locale];
@@ -232,6 +298,8 @@ export function ReviewPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const currentItem: ReviewWorkspaceItem | null = session?.items[activeIndex] ?? null;
+  const currentConfidence = currentItem?.confidence ?? null;
+  const confidenceBadge = normalizeConfidenceLevel(currentConfidence?.confidence_level);
 
   async function loadSession(offset = 0, append = false) {
     try {
@@ -439,7 +507,16 @@ export function ReviewPage() {
                   <h2 className="mt-2 text-2xl font-bold text-[#101114]">{currentItem.key_name}</h2>
                   <p className="mt-2 text-sm leading-7 text-[#566172]">{currentItem.suggestion_text}</p>
                 </div>
-                <Badge tone="accent">{currentItem.status}</Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="accent">{formatStatusLabel(currentItem.status)}</Badge>
+                  {currentConfidence ? (
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] ${confidenceBadge.className}`}
+                    >
+                      {confidenceBadge.label}
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -487,6 +564,68 @@ export function ReviewPage() {
                   <div className="rounded-2xl border border-[#dfe3ea] bg-white p-4">
                     <p className="pixel-label text-[10px] text-[#566172]">{copy.suggestion}</p>
                     <p className="mt-2 text-sm leading-7 text-[#101114]">{currentItem.suggestion_text}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border-2 border-[#101114] bg-[#101114] p-4 text-white shadow-[4px_4px_0_#c7f464]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="pixel-label text-[10px] text-[#c7f464]">{copy.confidence}</p>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] ${confidenceBadge.className}`}
+                  >
+                    {confidenceBadge.label}
+                  </span>
+                </div>
+
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-white/75">{copy.confidenceRule}</p>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">{copy.confidenceScore}</p>
+                    <p className="mt-2 text-3xl font-extrabold text-white">
+                      {currentConfidence ? `${currentConfidence.confidence_score.toFixed(0)}` : '0'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">{copy.confidenceReviews}</p>
+                    <p className="mt-2 text-3xl font-extrabold text-white">{currentConfidence?.valid_reviews ?? 0}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">{copy.confidenceAgreement}</p>
+                    <p className="mt-2 text-3xl font-extrabold text-white">
+                      {formatPercent(currentConfidence?.agreement_rate ?? 0)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">{copy.confidenceTrust}</p>
+                    <p className="mt-2 text-3xl font-extrabold text-white">
+                      {formatPercent(currentConfidence?.reviewer_trust_score ?? 0)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">{copy.confidenceReports}</p>
+                    <p className="mt-2 text-3xl font-extrabold text-white">{currentConfidence?.open_reports ?? 0}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">{copy.confidenceVerifiedReady}</p>
+                    <p className="mt-2 text-base font-bold text-white">
+                      {currentConfidence?.verified_ready ? 'YES' : 'NO'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/[.06] p-4">
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-white/50">Signals</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Final status</p>
+                      <p className="mt-2 text-sm font-semibold text-white">{currentConfidence?.final_status ?? '-'}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">{copy.confidenceLevel}</p>
+                      <p className="mt-2 text-sm font-semibold text-white">{currentConfidence?.confidence_level ?? 'LOW'}</p>
+                    </div>
                   </div>
                 </div>
               </div>

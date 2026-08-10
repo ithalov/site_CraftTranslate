@@ -3,6 +3,22 @@ import type { Database, Json } from '@/integrations/supabase/database.types';
 
 type ReviewWorkspaceSessionRow = Database['public']['Functions']['review_workspace_session']['Returns'][number];
 
+export type ReviewWorkspaceConfidence = {
+  confidence_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERIFIED' | string;
+  confidence_score: number;
+  valid_reviews: number;
+  distinct_reviewers: number;
+  approved_reviews: number;
+  request_changes_reviews: number;
+  rejected_reviews: number;
+  agreement_rate: number;
+  reviewer_trust_score: number;
+  open_reports: number;
+  final_status: string;
+  verified_ready: boolean;
+  signals: Record<string, unknown>;
+};
+
 export type ReviewWorkspaceHistoryEntry = {
   review_id: string;
   reviewer_id: string | null;
@@ -65,6 +81,7 @@ export type ReviewWorkspaceItem = {
   author_name: string | null;
   author_username: string | null;
   created_at: string | null;
+  confidence: ReviewWorkspaceConfidence | null;
   review_history: ReviewWorkspaceHistoryEntry[];
   other_suggestions: ReviewWorkspaceSiblingSuggestion[];
   glossary_terms: ReviewWorkspaceGlossaryTerm[];
@@ -103,6 +120,35 @@ function toStringArray(value: unknown) {
   }
 
   return value.map((item) => String(item));
+}
+
+function parseConfidence(value: Json): ReviewWorkspaceConfidence | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const item = value as Record<string, Json | undefined>;
+
+  const signals = item.signals;
+
+  return {
+    confidence_level: String(item.confidence_level ?? 'LOW'),
+    confidence_score: toNumber(item.confidence_score),
+    valid_reviews: toNumber(item.valid_reviews),
+    distinct_reviewers: toNumber(item.distinct_reviewers),
+    approved_reviews: toNumber(item.approved_reviews),
+    request_changes_reviews: toNumber(item.request_changes_reviews),
+    rejected_reviews: toNumber(item.rejected_reviews),
+    agreement_rate: toNumber(item.agreement_rate),
+    reviewer_trust_score: toNumber(item.reviewer_trust_score),
+    open_reports: toNumber(item.open_reports),
+    final_status: String(item.final_status ?? 'pending'),
+    verified_ready: Boolean(item.verified_ready),
+    signals:
+      signals && typeof signals === 'object' && !Array.isArray(signals)
+        ? (signals as Record<string, unknown>)
+        : {}
+  };
 }
 
 function parseHistory(value: Json): ReviewWorkspaceHistoryEntry[] {
@@ -222,6 +268,7 @@ function parseItem(value: Json): ReviewWorkspaceItem | null {
     author_name: item.author_name == null ? null : String(item.author_name),
     author_username: item.author_username == null ? null : String(item.author_username),
     created_at: item.created_at == null ? null : String(item.created_at),
+    confidence: parseConfidence(item.confidence ?? null),
     review_history: parseHistory(item.review_history ?? null),
     other_suggestions: parseSiblingSuggestions(item.other_suggestions ?? null),
     glossary_terms: parseGlossaryTerms(item.glossary_terms ?? null)

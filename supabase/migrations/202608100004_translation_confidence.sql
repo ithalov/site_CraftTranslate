@@ -1,5 +1,216 @@
 begin;
 
+drop function if exists public.translation_confidence_for_suggestion(uuid);
+drop function if exists public.review_workspace_session(text, integer, integer);
+drop function if exists public.review_workspace_submit(uuid, text, text, text);
+
+create or replace function public.translation_confidence_for_suggestion(
+  suggestion_uuid uuid
+)
+returns table (
+  confidence_level text,
+  confidence_score numeric(5,2),
+  valid_reviews bigint,
+  distinct_reviewers bigint,
+  approved_reviews bigint,
+  request_changes_reviews bigint,
+  rejected_reviews bigint,
+  agreement_rate numeric(5,2),
+  reviewer_trust_score numeric(5,2),
+  open_reports bigint,
+  final_status text,
+  verified_ready boolean,
+  signals jsonb
+)
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  with suggestion as (
+    select
+      ts.id as suggestion_id,
+      ts.translation_key_id,
+      ts.author_id,
+      ts.status::text as final_status
+    from public.translation_suggestions ts
+    where ts.id = suggestion_uuid
+    limit 1
+  ),
+  review_stats as (
+    select
+      count(*) filter (where r.decision in ('approve', 'request_changes', 'reject'))::bigint as valid_reviews,
+      count(distinct r.reviewer_id) filter (where r.decision in ('approve', 'request_changes', 'reject'))::bigint as distinct_reviewers,
+      count(*) filter (where r.decision = 'approve')::bigint as approved_reviews,
+      count(*) filter (where r.decision = 'request_changes')::bigint as request_changes_reviews,
+      count(*) filter (where r.decision = 'reject')::bigint as rejected_reviews
+    from public.reviews r
+    join suggestion s on s.suggestion_id = r.translation_suggestion_id
+    where r.reviewer_id <> s.author_id
+  ),
+  reviewer_reputation as (
+    select
+      coalesce(
+        avg(
+          greatest(
+            least(
+              (coalesce(rep.reputation_score, 0) + 100)::numeric / 200::numeric * 100,
+              100
+            ),
+            0
+          )
+        ),
+        0
+      )::numeric(5,2) as reviewer_trust_score
+    from (
+      select distinct r.reviewer_id
+      from public.reviews r
+      join suggestion s on s.suggestion_id = r.translation_suggestion_id
+      where r.decision in ('approve', 'request_changes', 'reject')
+        and r.reviewer_id <> s.author_id
+    ) reviewers
+    left join lateral (
+      select coalesce(sum(re.delta), 0)::bigint as reputation_score
+      from public.reputation_events re
+      where re.user_id = reviewers.reviewer_id
+    ) rep on true
+  ),
+  report_stats as (
+    select count(*)::bigint as open_reports
+    from public.reports rp
+    join suggestion s on true
+    where rp.status in ('open', 'under_review')
+      and (
+        rp.translation_suggestion_id = s.suggestion_id
+        or rp.translation_key_id = s.translation_key_id
+      )
+  ),
+  aggregates as (
+    select
+      s.final_status,
+      coalesce(rs.valid_reviews, 0) as valid_reviews,
+      coalesce(rs.distinct_reviewers, 0) as distinct_reviewers,
+      coalesce(rs.approved_reviews, 0) as approved_reviews,
+      coalesce(rs.request_changes_reviews, 0) as request_changes_reviews,
+      coalesce(rs.rejected_reviews, 0) as rejected_reviews,
+      case
+        when coalesce(rs.valid_reviews, 0) = 0 then 0::numeric(5,2)
+        else round((coalesce(rs.approved_reviews, 0)::numeric / greatest(rs.valid_reviews, 1)::numeric) * 100, 2)::numeric(5,2)
+      end as agreement_rate,
+      coalesce(rr.reviewer_trust_score, 0)::numeric(5,2) as reviewer_trust_score,
+      coalesce(rp.open_reports, 0) as open_reports
+    from suggestion s
+    left join review_stats rs on true
+    left join reviewer_reputation rr on true
+    left join report_stats rp on true
+  ),
+  score_parts as (
+    select
+      *,
+      least(valid_reviews * 15, 45) as review_volume_component,
+      round(agreement_rate * 0.25, 2) as agreement_component,
+      round(reviewer_trust_score * 0.18, 2) as reviewer_component,
+      case
+        when final_status = 'approved' then 12
+        when final_status = 'rejected' then -30
+        when final_status = 'archived' then -10
+        else 0
+      end as status_component,
+      least(open_reports * 20, 40) as report_penalty
+    from aggregates
+  )
+  select
+    case
+      when final_status = 'approved'
+        and valid_reviews >= 2
+        and distinct_reviewers >= 2
+        and approved_reviews >= 2
+        and open_reports = 0
+        and agreement_rate >= 80
+        and reviewer_trust_score >= 60
+        and greatest(0, least(100, review_volume_component + agreement_component + reviewer_component + status_component - report_penalty)) >= 90
+      then 'VERIFIED'
+      when greatest(0, least(100, review_volume_component + agreement_component + reviewer_component + status_component - report_penalty)) >= 70
+      then 'HIGH'
+      when greatest(0, least(100, review_volume_component + agreement_component + reviewer_component + status_component - report_penalty)) >= 40
+      then 'MEDIUM'
+      else 'LOW'
+    end as confidence_level,
+    greatest(0, least(100, review_volume_component + agreement_component + reviewer_component + status_component - report_penalty))::numeric(5,2) as confidence_score,
+    valid_reviews,
+    distinct_reviewers,
+    approved_reviews,
+    request_changes_reviews,
+    rejected_reviews,
+    agreement_rate,
+    reviewer_trust_score,
+    open_reports,
+    final_status,
+    (
+      final_status = 'approved'
+      and valid_reviews >= 2
+      and distinct_reviewers >= 2
+      and approved_reviews >= 2
+      and open_reports = 0
+      and agreement_rate >= 80
+      and reviewer_trust_score >= 60
+      and greatest(0, least(100, review_volume_component + agreement_component + reviewer_component + status_component - report_penalty)) >= 90
+    ) as verified_ready,
+    jsonb_build_object(
+      'formula', 'volume + agreement + reviewer reputation + final status - reports',
+      'review_volume_component', review_volume_component,
+      'agreement_component', agreement_component,
+      'reviewer_component', reviewer_component,
+      'status_component', status_component,
+      'report_penalty', report_penalty,
+      'valid_reviews', valid_reviews,
+      'distinct_reviewers', distinct_reviewers,
+      'approved_reviews', approved_reviews,
+      'request_changes_reviews', request_changes_reviews,
+      'rejected_reviews', rejected_reviews,
+      'agreement_rate', agreement_rate,
+      'reviewer_trust_score', reviewer_trust_score,
+      'open_reports', open_reports,
+      'final_status', final_status,
+      'verified_ready', (
+        final_status = 'approved'
+        and valid_reviews >= 2
+        and distinct_reviewers >= 2
+        and approved_reviews >= 2
+        and open_reports = 0
+        and agreement_rate >= 80
+        and reviewer_trust_score >= 60
+        and greatest(0, least(100, review_volume_component + agreement_component + reviewer_component + status_component - report_penalty)) >= 90
+      )
+    ) as signals
+  from score_parts;
+$$;
+
+grant execute on function public.translation_confidence_for_suggestion(uuid) to authenticated;
+
+create or replace function public.can_review_translation_suggestion(suggestion_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select public.is_admin_or_owner()
+    or exists (
+      select 1
+      from public.translation_suggestions ts
+      join public.translation_keys tk on tk.id = ts.translation_key_id
+      where ts.id = suggestion_id
+        and ts.author_id <> auth.uid()
+        and (
+          public.has_language_role(ts.target_language_id, 'reviewer')
+          or public.has_language_role(ts.target_language_id, 'language_moderator')
+          or public.has_language_role(tk.source_language_id, 'reviewer')
+          or public.has_language_role(tk.source_language_id, 'language_moderator')
+        )
+    );
+$$;
+
 create or replace function public.review_workspace_session(
   target_language_code text default null,
   batch_size integer default 10,
@@ -153,10 +364,30 @@ as $$
       bs.author_username,
       bs.created_at,
       bs.queue_rank,
+      coalesce(conf.confidence_json, '{}'::jsonb) as confidence,
       coalesce(review_history.review_history, '[]'::jsonb) as review_history,
       coalesce(other_suggestions.other_suggestions, '[]'::jsonb) as other_suggestions,
       coalesce(glossary_data.glossary_terms, '[]'::jsonb) as glossary_terms
     from batch_suggestions bs
+    left join lateral (
+      select jsonb_build_object(
+        'confidence_level', c.confidence_level,
+        'confidence_score', c.confidence_score,
+        'valid_reviews', c.valid_reviews,
+        'distinct_reviewers', c.distinct_reviewers,
+        'approved_reviews', c.approved_reviews,
+        'request_changes_reviews', c.request_changes_reviews,
+        'rejected_reviews', c.rejected_reviews,
+        'agreement_rate', c.agreement_rate,
+        'reviewer_trust_score', c.reviewer_trust_score,
+        'open_reports', c.open_reports,
+        'final_status', c.final_status,
+        'verified_ready', c.verified_ready,
+        'signals', c.signals
+      ) as confidence_json
+      from public.translation_confidence_for_suggestion(bs.suggestion_id) c
+      limit 1
+    ) conf on true
     left join lateral (
       select coalesce(
         jsonb_agg(
@@ -271,6 +502,7 @@ as $$
           'author_name', ir.author_name,
           'author_username', ir.author_username,
           'created_at', ir.created_at,
+          'confidence', ir.confidence,
           'review_history', ir.review_history,
           'other_suggestions', ir.other_suggestions,
           'glossary_terms', ir.glossary_terms
@@ -348,6 +580,10 @@ begin
 
   if v_suggestion.id is null then
     raise exception 'Suggestion not found';
+  end if;
+
+  if v_suggestion.author_id = auth.uid() then
+    raise exception 'You cannot review your own translation';
   end if;
 
   if not public.can_review_translation_suggestion(suggestion_id) then
@@ -466,5 +702,24 @@ end;
 $$;
 
 grant execute on function public.review_workspace_submit(uuid, text, text, text) to authenticated;
+
+drop policy if exists "Reviews created by reviewers" on public.reviews;
+create policy "Reviews created by reviewers"
+on public.reviews
+for insert
+with check (
+  auth.uid() is not null
+  and reviewer_id = auth.uid()
+  and reviewer_id <> (
+    select ts.author_id
+    from public.translation_suggestions ts
+    where ts.id = translation_suggestion_id
+  )
+  and public.can_review_translation_suggestion(translation_suggestion_id)
+  and public.has_language_role(
+    (select ts.target_language_id from public.translation_suggestions ts where ts.id = translation_suggestion_id),
+    'reviewer'
+  )
+);
 
 commit;

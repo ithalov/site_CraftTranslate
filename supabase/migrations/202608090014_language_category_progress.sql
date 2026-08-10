@@ -1,5 +1,7 @@
 begin;
 
+drop function if exists public.public_language_page(text);
+
 create or replace function public.public_language_page(language_code text)
 returns table (
   language_id uuid,

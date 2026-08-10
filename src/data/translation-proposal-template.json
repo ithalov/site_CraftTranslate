@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "title": "Community string proposal template",
+  "description": "Use this shape for future admin imports or exports from the translation workspace.",
+  "fields": [
+    { "name": "source_language", "type": "string", "required": true, "default": "en" },
+    { "name": "target_languages", "type": "string[]", "required": true },
+    { "name": "source_text", "type": "string", "required": true },
+    { "name": "key_name", "type": "string", "required": true },
+    { "name": "theme", "type": "string", "required": true },
+    { "name": "category", "type": "string", "required": true },
+    { "name": "subcategory", "type": "string", "required": false },
+    { "name": "context", "type": "string", "required": true },
+    { "name": "notes", "type": "string", "required": false },
+    { "name": "protected_variables", "type": "string[]", "required": false },
+    { "name": "protected_terms", "type": "string[]", "required": false },
+    { "name": "tags", "type": "string[]", "required": false },
+    { "name": "created_by", "type": "string", "required": false },
+    { "name": "created_at", "type": "string", "required": false }
+  ],
+  "rules": [
+    "Source text must be written in English.",
+    "Theme and category are mandatory.",
+    "Context must explain where and how the string is used.",
+    "Placeholders must be copied exactly in translations.",
+    "Protected terms must not be edited when the rule marks them as locked."
+  ]
+}

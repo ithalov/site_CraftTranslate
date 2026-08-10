@@ -16,6 +16,29 @@ $$;
 
 grant execute on function public.language_proficiency_rank(text) to anon, authenticated;
 
+create or replace function public.can_translate_language(language_uuid uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select public.is_admin_or_owner()
+    or exists (
+      select 1
+      from public.user_languages ul
+      where ul.user_id = auth.uid()
+        and ul.language_id = language_uuid
+        and public.language_proficiency_rank(ul.proficiency::text) >= 1
+    )
+    or public.has_language_role(language_uuid, 'translator')
+    or public.has_language_role(language_uuid, 'trusted_translator')
+    or public.has_language_role(language_uuid, 'reviewer')
+    or public.has_language_role(language_uuid, 'language_moderator');
+$$;
+
+grant execute on function public.can_translate_language(uuid) to anon, authenticated;
+
 create or replace function public.normalize_translation_workspace_text(input_text text)
 returns text
 language sql
@@ -140,29 +163,6 @@ end;
 $$;
 
 grant execute on function public.translation_workspace_agree_suggestion(uuid) to authenticated;
-
-create or replace function public.can_translate_language(language_uuid uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = public, auth
-as $$
-  select public.is_admin_or_owner()
-    or exists (
-      select 1
-      from public.user_languages ul
-      where ul.user_id = auth.uid()
-        and ul.language_id = language_uuid
-        and public.language_proficiency_rank(ul.proficiency::text) >= 1
-    )
-    or public.has_language_role(language_uuid, 'translator')
-    or public.has_language_role(language_uuid, 'trusted_translator')
-    or public.has_language_role(language_uuid, 'reviewer')
-    or public.has_language_role(language_uuid, 'language_moderator');
-$$;
-
-grant execute on function public.can_translate_language(uuid) to anon, authenticated;
 
 create or replace function public.translation_workspace_session(
   target_language_code text default null,
@@ -633,6 +633,13 @@ begin
 end;
 $$;
 
-grant execute on function public.translation_workspace_submit(uuid, text, text, text, text) to authenticated;
+grant execute on function public.translation_workspace_submit(
+  uuid,
+  text,
+  text,
+  text,
+  text,
+  uuid
+) to authenticated;
 
 commit;

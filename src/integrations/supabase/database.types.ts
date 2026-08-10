@@ -554,7 +554,12 @@ export type Database = {
           created_by: string | null;
           definition: string;
           id: string;
+          do_not_translate: boolean;
           language_id: string;
+          notes: string | null;
+          original_term: string;
+          recommended_translation: string;
+          rule: string | null;
           source_translation_key_id: string | null;
           status: Database['public']['Enums']['glossary_status'];
           subcategory: string | null;
@@ -569,8 +574,13 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           definition: string;
+          do_not_translate?: boolean;
           id?: string;
           language_id: string;
+          notes?: string | null;
+          original_term?: string;
+          recommended_translation?: string;
+          rule?: string | null;
           source_translation_key_id?: string | null;
           status?: Database['public']['Enums']['glossary_status'];
           subcategory?: string | null;
@@ -585,8 +595,13 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           definition?: string;
+          do_not_translate?: boolean;
           id?: string;
           language_id?: string;
+          notes?: string | null;
+          original_term?: string;
+          recommended_translation?: string;
+          rule?: string | null;
           source_translation_key_id?: string | null;
           status?: Database['public']['Enums']['glossary_status'];
           subcategory?: string | null;
@@ -603,7 +618,17 @@ export type Database = {
           glossary_id: string | null;
           id: string;
           language_id: string;
+          decision_at: string | null;
+          decision_by: string | null;
+          decision_notes: string | null;
+          proposed_category: string;
           proposed_definition: string;
+          proposed_do_not_translate: boolean;
+          proposed_notes: string | null;
+          proposed_original_term: string;
+          proposed_recommended_translation: string;
+          proposed_rule: string | null;
+          proposed_subcategory: string | null;
           proposed_term: string;
           proposer_id: string;
           rationale: string | null;
@@ -617,8 +642,18 @@ export type Database = {
           glossary_id?: string | null;
           id?: string;
           language_id: string;
-          proposed_definition: string;
-          proposed_term: string;
+          decision_at?: string | null;
+          decision_by?: string | null;
+          decision_notes?: string | null;
+          proposed_category?: string;
+          proposed_definition?: string;
+          proposed_do_not_translate?: boolean;
+          proposed_notes?: string | null;
+          proposed_original_term?: string;
+          proposed_recommended_translation?: string;
+          proposed_rule?: string | null;
+          proposed_subcategory?: string | null;
+          proposed_term?: string;
           proposer_id: string;
           rationale?: string | null;
           reviewer_id?: string | null;
@@ -631,7 +666,17 @@ export type Database = {
           glossary_id?: string | null;
           id?: string;
           language_id?: string;
+          decision_at?: string | null;
+          decision_by?: string | null;
+          decision_notes?: string | null;
+          proposed_category?: string;
           proposed_definition?: string;
+          proposed_do_not_translate?: boolean;
+          proposed_notes?: string | null;
+          proposed_original_term?: string;
+          proposed_recommended_translation?: string;
+          proposed_rule?: string | null;
+          proposed_subcategory?: string | null;
           proposed_term?: string;
           proposer_id?: string;
           rationale?: string | null;
@@ -639,6 +684,42 @@ export type Database = {
           source_translation_key_id?: string | null;
           status?: Database['public']['Enums']['glossary_proposal_status'];
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      glossary_proposal_events: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          created_at: string;
+          glossary_proposal_id: string;
+          id: string;
+          metadata: Json;
+          new_status: Database['public']['Enums']['glossary_proposal_status'];
+          notes: string | null;
+          previous_status: Database['public']['Enums']['glossary_proposal_status'];
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          created_at?: string;
+          glossary_proposal_id: string;
+          id?: string;
+          metadata?: Json;
+          new_status: Database['public']['Enums']['glossary_proposal_status'];
+          notes?: string | null;
+          previous_status: Database['public']['Enums']['glossary_proposal_status'];
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          created_at?: string;
+          glossary_proposal_id?: string;
+          id?: string;
+          metadata?: Json;
+          new_status?: Database['public']['Enums']['glossary_proposal_status'];
+          notes?: string | null;
+          previous_status?: Database['public']['Enums']['glossary_proposal_status'];
         };
         Relationships: [];
       };
@@ -1152,7 +1233,7 @@ export type Database = {
           translation_suggestions: number;
         }[];
       };
-        public_language_page: {
+      public_language_page: {
           Args: {
             language_code: string;
           };
@@ -1188,9 +1269,91 @@ export type Database = {
             translation_suggestions: number;
           }[];
         };
-        translation_workspace_agree_suggestion: {
-          Args: {
-            suggestion_id: string;
+      public_language_glossary: {
+        Args: {
+          language_code: string;
+        };
+        Returns: {
+          aliases: string[];
+          category: string;
+          code: string;
+          created_at: string;
+          definition: string;
+          do_not_translate: boolean;
+          id: string;
+          language_id: string;
+          name: string;
+          native_name: string;
+          notes: string | null;
+          original_term: string;
+          recommended_translation: string;
+          rule: string | null;
+          status: string;
+          subcategory: string | null;
+          tags: string[];
+          term: string;
+          updated_at: string;
+        }[];
+      };
+      submit_glossary_proposal: {
+        Args: {
+          glossary_id?: string | null;
+          language_code: string;
+          proposed_category: string;
+          proposed_do_not_translate?: boolean;
+          proposed_notes?: string | null;
+          proposed_original_term: string;
+          proposed_recommended_translation: string;
+          proposed_rule?: string | null;
+          proposed_subcategory?: string | null;
+          rationale?: string | null;
+          source_translation_key_id?: string | null;
+        };
+        Returns: {
+          created_at: string;
+          id: string;
+          language_id: string;
+          proposed_category: string;
+          proposed_original_term: string;
+          proposed_recommended_translation: string;
+          status: Database['public']['Enums']['glossary_proposal_status'];
+        }[];
+      };
+      review_glossary_proposal: {
+        Args: {
+          decision: string;
+          notes?: string | null;
+          proposal_id: string;
+        };
+        Returns: {
+          decision_at: string;
+          glossary_id: string | null;
+          id: string;
+          reviewer_id: string;
+          status: Database['public']['Enums']['glossary_proposal_status'];
+        }[];
+      };
+      glossary_proposal_history: {
+        Args: {
+          proposal_id: string;
+        };
+        Returns: {
+          action: string;
+          actor_avatar_url: string | null;
+          actor_id: string;
+          actor_name: string | null;
+          actor_username: string | null;
+          created_at: string;
+          event_id: string;
+          glossary_proposal_id: string;
+          new_status: Database['public']['Enums']['glossary_proposal_status'];
+          notes: string | null;
+          previous_status: Database['public']['Enums']['glossary_proposal_status'];
+        }[];
+      };
+      translation_workspace_agree_suggestion: {
+        Args: {
+          suggestion_id: string;
           };
           Returns: {
             created_at: string;
@@ -1234,6 +1397,26 @@ export type Database = {
             decision: string;
             review_id: string;
             reviewed_suggestion_id: string;
+          }[];
+        };
+        translation_confidence_for_suggestion: {
+          Args: {
+            suggestion_uuid: string;
+          };
+          Returns: {
+            confidence_level: string;
+            confidence_score: number;
+            valid_reviews: number;
+            distinct_reviewers: number;
+            approved_reviews: number;
+            request_changes_reviews: number;
+            rejected_reviews: number;
+            agreement_rate: number;
+            reviewer_trust_score: number;
+            open_reports: number;
+            final_status: string;
+            verified_ready: boolean;
+            signals: Json;
           }[];
         };
         translation_workspace_detect_duplicate: {
@@ -1309,7 +1492,8 @@ export type Database = {
     Enums: {
       badge_rarity: 'common' | 'rare' | 'epic' | 'legendary';
       donation_status: 'pending' | 'completed' | 'failed' | 'refunded';
-      glossary_proposal_status: 'pending' | 'approved' | 'rejected' | 'superseded';
+      glossary_proposal_status: 'pending' | 'approved' | 'rejected' | 'superseded' | 'needs_changes';
+      glossary_proposal_event_action: 'submitted' | 'approved' | 'rejected' | 'needs_changes' | 'updated';
       glossary_status: 'draft' | 'pending' | 'approved' | 'deprecated';
       language_direction: 'ltr' | 'rtl';
       language_proficiency: 'beginner' | 'intermediate' | 'fluent' | 'advanced' | 'native';
@@ -1335,7 +1519,16 @@ export type Database = {
       review_decision: 'approve' | 'request_changes' | 'reject' | 'flag';
       review_status: 'pending' | 'needs_changes' | 'approved' | 'rejected';
       translation_key_status: 'draft' | 'active' | 'archived';
-      translation_suggestion_status: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived';
+      translation_suggestion_status:
+        | 'draft'
+        | 'pending'
+        | 'reviewing'
+        | 'approved'
+        | 'official'
+        | 'needs_changes'
+        | 'rejected'
+        | 'reported'
+        | 'archived';
       vote_kind: 'upvote' | 'downvote' | 'helpful' | 'not_helpful';
       term_status: 'draft' | 'approved' | 'deprecated';
       translation_status: 'draft' | 'in_review' | 'published' | 'archived';
