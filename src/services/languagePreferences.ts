@@ -148,7 +148,6 @@ export async function saveLanguagePreferences(
 
   const payload: Array<Database['public']['Tables']['user_languages']['Insert']> = normalized.map(
     (item) => ({
-      id: item.id,
       user_id: userId,
       language_id: item.language_id,
       proficiency: item.proficiency,
