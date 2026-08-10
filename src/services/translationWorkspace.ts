@@ -1,12 +1,15 @@
 import { supabase } from '@/services/supabase';
 import translationSeed from '@/data/translation-seed.json';
+import { generatedTranslationContent } from '@/data/generated-translation-content';
 import type { Database, Json } from '@/integrations/supabase/database.types';
 
 type TranslationWorkspaceSessionRow = Database['public']['Functions']['translation_workspace_session']['Returns'][number];
 type PublicLanguageGlossaryRow = Database['public']['Functions']['public_language_glossary']['Returns'][number];
 type TranslationSeed = typeof translationSeed;
 type TranslationSeedLanguage = TranslationSeed['languages'][number];
-type TranslationSeedString = TranslationSeed['strings'][number];
+type TranslationSeedString = TranslationSeed['strings'][number] | (typeof generatedTranslationContent)[number];
+
+const allSeedStrings: TranslationSeedString[] = [...translationSeed.strings, ...generatedTranslationContent];
 
 const LOCAL_WORKSPACE_SUGGESTIONS_KEY = 'chattranslate-local-workspace-suggestions-v1';
 
@@ -176,12 +179,12 @@ function getSeedStrings(languageCode: string, categorySlug?: string | null): Tra
   const isWildcardCategory = normalizedCategory.length === 0 || normalizedCategory === 'all' || normalizedCategory === 'general';
 
   if (isWildcardCategory) {
-    return translationSeed.strings.filter((entry) =>
+    return allSeedStrings.filter((entry) =>
       entry.supported_targets.some((code) => code.toLowerCase() === targetLanguage.code.toLowerCase())
     );
   }
 
-  return translationSeed.strings.filter((entry) => {
+  return allSeedStrings.filter((entry) => {
     const matchesTarget = entry.supported_targets.some((code) => code.toLowerCase() === targetLanguage.code.toLowerCase());
     const matchesCategory =
       normalizeSlug(entry.category) === normalizedCategory ||

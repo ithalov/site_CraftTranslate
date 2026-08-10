@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
 import { paths } from '@/navigation/paths';
 import translationSeed from '@/data/translation-seed.json';
+import { generatedTranslationContentSummary } from '@/data/generated-translation-content';
 import {
   agreeTranslationWorkspaceSuggestion,
   findTranslationWorkspaceDuplicate,
@@ -478,7 +479,7 @@ export function TranslatePage() {
   const { user } = useAuth();
   const { locale } = useLocale();
   const copy = copyByLocale[locale];
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const languageCode = searchParams.get('language')?.trim() ?? '';
   const categorySlug = searchParams.get('category')?.trim() ?? '';
   const [session, setSession] = useState<TranslationWorkspaceSession | null>(null);
@@ -626,8 +627,25 @@ export function TranslatePage() {
 
   const processedCount = submittedCount + skippedCount;
   const remainingCount = session ? Math.max(session.loaded_count - processedCount, 0) : 0;
-  const seedStringCount = translationSeed.strings.length;
+  const seedStringCount = translationSeed.strings.length + generatedTranslationContentSummary.total;
   const proposalRuleCount = translationSeed.proposal_rules.length;
+  const queueControlsCopy = locale === 'pt-BR'
+    ? {
+        title: 'Controle da fila',
+        description: 'Escolha o idioma de destino e foque o proximo lote em uma area do Minecraft.',
+        categories: [['all', 'Todo o conteudo'], ['minecraft', 'Minecraft'], ['pvp', 'PvP'], ['mmorpg', 'MMORPG'], ['economy', 'Economia'], ['trading', 'Trocas'], ['commands', 'Comandos'], ['system_messages', 'Sistema'], ['mods', 'Mods']]
+      }
+    : locale === 'es'
+      ? {
+          title: 'Control de cola',
+          description: 'Elige el idioma de destino y enfoca el proximo lote en un area de Minecraft.',
+          categories: [['all', 'Todo el contenido'], ['minecraft', 'Minecraft'], ['pvp', 'PvP'], ['mmorpg', 'MMORPG'], ['economy', 'Economia'], ['trading', 'Intercambios'], ['commands', 'Comandos'], ['system_messages', 'Sistema'], ['mods', 'Mods']]
+        }
+      : {
+          title: 'Queue controls',
+          description: 'Choose your target language and focus the next batch on a Minecraft area.',
+          categories: [['all', 'All content'], ['minecraft', 'Minecraft'], ['pvp', 'PvP'], ['mmorpg', 'MMORPG'], ['economy', 'Economy'], ['trading', 'Trading'], ['commands', 'Commands'], ['system_messages', 'System'], ['mods', 'Mods']]
+        };
 
   function handleProposalTargetToggle(code: string) {
     setCommunityProposalForm((current) => {
@@ -640,6 +658,17 @@ export function TranslatePage() {
           : [...current.target_languages, code]
       };
     });
+  }
+
+  function updateQueue(nextLanguageCode: string, nextCategorySlug = 'all') {
+    const params = new URLSearchParams();
+    params.set('language', nextLanguageCode);
+
+    if (nextCategorySlug !== 'all') {
+      params.set('category', nextCategorySlug);
+    }
+
+    setSearchParams(params);
   }
 
   function exportCommunityProposals() {
@@ -850,6 +879,49 @@ export function TranslatePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </Card>
+
+        <Card className="border border-[#dfe3ea] bg-white/90 p-4 shadow-[0_12px_32px_rgba(16,17,20,.05)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="pixel-label text-[10px] text-[#566172]">{queueControlsCopy.title}</p>
+              <p className="mt-2 text-sm leading-6 text-[#566172]">
+                {queueControlsCopy.description}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {translationSeed.languages.map((language) => (
+                <button
+                  key={language.code}
+                  type="button"
+                  onClick={() => updateQueue(language.code, categorySlug || 'all')}
+                  className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                    languageCode.toLowerCase() === language.code.toLowerCase() || (!languageCode && language.code === 'pt-BR')
+                      ? 'border-[#101114] bg-[#c7f464] text-[#101114] shadow-[2px_2px_0_#101114]'
+                      : 'border-[#dfe3ea] bg-[#f7f8fb] text-[#566172] hover:border-[#101114] hover:text-[#101114]'
+                  }`}
+                >
+                  {language.code}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {queueControlsCopy.categories.map(([slug, label]) => (
+              <button
+                key={slug}
+                type="button"
+                onClick={() => updateQueue(languageCode || 'pt-BR', slug)}
+                className={`shrink-0 rounded-full border px-3 py-2 text-xs font-bold transition ${
+                  (categorySlug || 'all') === slug
+                    ? 'border-[#101114] bg-[#101114] text-white'
+                    : 'border-[#dfe3ea] bg-white text-[#566172] hover:border-[#101114] hover:text-[#101114]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </Card>
 
