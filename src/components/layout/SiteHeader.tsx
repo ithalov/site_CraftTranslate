@@ -6,6 +6,7 @@ import { publicNavItems } from '@/navigation/navigation';
 import { paths } from '@/navigation/paths';
 import { classNames } from '@/utils/classNames';
 import { useLocale } from '@/hooks/useLocale';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 type SiteHeaderProps = { appName: string };
 
@@ -56,6 +57,7 @@ export function SiteHeader({ appName }: SiteHeaderProps) {
             ))}
           </nav>
           <LocaleSwitcher />
+          <ThemeToggle />
           {isAuthenticated ? (
             <Link
               to={paths.profile}

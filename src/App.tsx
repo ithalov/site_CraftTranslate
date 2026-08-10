@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { LocaleProvider } from '@/contexts/LocaleContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PublicLayout } from '@/components/layout/PublicLayout';
@@ -24,8 +25,9 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export default function App() {
   return (
-    <LocaleProvider>
-      <AuthProvider>
+    <ThemeProvider>
+      <LocaleProvider>
+        <AuthProvider>
         <BrowserRouter basename={getRouterBasename()}>
           <Routes>
             <Route element={<PublicLayout />}>
@@ -58,7 +60,8 @@ export default function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
-    </LocaleProvider>
+        </AuthProvider>
+      </LocaleProvider>
+    </ThemeProvider>
   );
 }

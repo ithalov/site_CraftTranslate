@@ -16,8 +16,8 @@ export function ProgressBar({ label, value, tone = 'accent' }: ProgressBarProps)
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-4 text-sm">
-        <span className="text-slate-300">{label}</span>
-        <span className="font-medium text-white">{value}%</span>
+        <span className="text-[#566172]">{label}</span>
+        <span className="font-bold text-[#101114]">{value}%</span>
       </div>
       <div className="h-3 rounded-full bg-[#e6eaf0] p-[2px]">
         <div

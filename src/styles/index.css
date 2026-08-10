@@ -29,9 +29,21 @@
   font-family: var(--font-body);
 }
 
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0e1116;
+  --color-bg-elevated: #171b23;
+  --color-surface: #171b23;
+  --color-surface-2: #202632;
+  --color-line: #303846;
+  --color-text: #f4f6f8;
+  --color-muted: #b8c1d0;
+  --shadow-panel: 6px 6px 0 #050607;
+}
+
 html, body, #root { min-height: 100%; }
 html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; background: var(--color-bg); font-weight: 500; }
+body { margin: 0; min-width: 320px; background: var(--color-bg); font-weight: 500; transition: background-color .25s ease, color .25s ease; }
 body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: radial-gradient(circle at 12% 14%, rgba(199,244,100,.18), transparent 18%), radial-gradient(circle at 88% 18%, rgba(76,201,240,.12), transparent 16%), linear-gradient(90deg, rgba(16,17,20,.035) 1px, transparent 1px), linear-gradient(rgba(16,17,20,.035) 1px, transparent 1px); background-size: auto, auto, 28px 28px, 28px 28px; pointer-events: none; }
 * { box-sizing: border-box; }
 a { color: inherit; text-decoration: none; }
@@ -57,4 +69,14 @@ button, input, select, textarea { font: inherit; }
 .page-enter > * { animation: soft-pop .45s both; }
 .page-enter > *:nth-child(2) { animation-delay: .07s; }
 .page-enter > *:nth-child(3) { animation-delay: .14s; }
+html[data-theme="dark"] body::before { background: radial-gradient(circle at 12% 14%, rgba(199,244,100,.12), transparent 21%), radial-gradient(circle at 88% 18%, rgba(76,201,240,.10), transparent 19%), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px); background-size: auto, auto, 28px 28px, 28px 28px; }
+html[data-theme="dark"] .pixel-panel,
+html[data-theme="dark"] [class~="bg-white"] { background-color: #171b23 !important; }
+html[data-theme="dark"] [class*="bg-[#f7f8fb]"],
+html[data-theme="dark"] [class*="bg-[#f0f2f6]"] { background-color: #202632 !important; }
+html[data-theme="dark"] [class*="bg-[#e6eaf0]"] { background-color: #303846 !important; }
+html[data-theme="dark"] [class*="text-[#101114]"] { color: #f4f6f8 !important; }
+html[data-theme="dark"] [class*="text-[#566172]"] { color: #b8c1d0 !important; }
+html[data-theme="dark"] [class*="border-[#dfe3ea]"] { border-color: #303846 !important; }
+html[data-theme="dark"] [class*="shadow-["] { --tw-shadow-color: #050607; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
