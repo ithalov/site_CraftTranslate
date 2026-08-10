@@ -258,6 +258,80 @@ Elas devem ser usadas pelo frontend para:
 
 ## 10. Confirmar a tabela de idiomas e onboarding
 
+## 11. Importar 10k strings sem pesar o banco
+
+Para subir as strings grandes sem criar uma migration gigante, use o pacote em lotes.
+
+### O que foi preparado no projeto
+
+- o arquivo bruto com as 10k strings fica em `data/import/chattranslate_10000_source_strings.json`
+- o gerador de lotes fica em `scripts/generate-translation-import.mjs`
+- a importação vai para `supabase/import_batches/`
+- a tabela `translation_keys` ganhou a coluna `supported_targets`
+- a fila de tradução passa a respeitar os idiomas suportados por cada string
+
+### Gerar os lotes
+
+Rode no projeto local:
+
+```bash
+npm run generate:translation-import
+```
+
+Por padrão o script:
+
+- lê o JSON de origem
+- valida `key_name`, `source_text`, `category`, `context` e `supported_targets`
+- remove duplicatas por `key_name`
+- cria arquivos SQL pequenos com 500 itens por lote
+
+### Onde os lotes ficam
+
+Depois de gerar, os arquivos vão aparecer em:
+
+```text
+supabase/import_batches/
+```
+
+Você vai ver algo assim:
+
+- `translation_keys_batch_001.sql`
+- `translation_keys_batch_002.sql`
+- `translation_keys_batch_003.sql`
+- ...
+- `manifest.json`
+
+### Como importar no Supabase
+
+1. Abra o Supabase.
+2. Vá em **SQL Editor**.
+3. Execute os arquivos na ordem, do `001` em diante.
+4. Se preferir, cole um lote por vez e rode aos poucos.
+
+### Por que isso nao pesa
+
+Esse fluxo evita:
+
+- uma migration enorme com 10k inserts
+- um SQL Editor travando com um bloco gigante
+- dependência do frontend para carregar a base inteira
+
+Em vez disso, voce mantém:
+
+- o arquivo bruto no GitHub
+- a importação em lotes
+- o banco com a fila real e filtrada por idioma suportado
+
+### Regra da fila
+
+Agora a fila só mostra uma string se:
+
+- ela estiver ativa
+- ela for da categoria escolhida
+- o idioma destino existir no `supported_targets`
+
+Se o array `supported_targets` vier vazio, a string continua valendo para todos os idiomas.
+
 Confira se a tabela `user_languages` está funcionando corretamente.
 
 Ela precisa guardar:
@@ -306,4 +380,3 @@ Quando terminar esta parte, o Supabase já deve estar pronto para o app usar:
 - ranking e progresso expostos com segurança
 
 Depois disso, o restante do desenvolvimento pode usar o banco sem precisar refazer a base.
-

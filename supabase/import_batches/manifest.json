@@ -1,0 +1,29 @@
+{
+  "source": "data/import/chattranslate_10000_source_strings.json",
+  "output_dir": "supabase/import_batches",
+  "batch_size": 500,
+  "total_rows": 10000,
+  "total_batches": 20,
+  "files": [
+    "translation_keys_batch_001.sql",
+    "translation_keys_batch_002.sql",
+    "translation_keys_batch_003.sql",
+    "translation_keys_batch_004.sql",
+    "translation_keys_batch_005.sql",
+    "translation_keys_batch_006.sql",
+    "translation_keys_batch_007.sql",
+    "translation_keys_batch_008.sql",
+    "translation_keys_batch_009.sql",
+    "translation_keys_batch_010.sql",
+    "translation_keys_batch_011.sql",
+    "translation_keys_batch_012.sql",
+    "translation_keys_batch_013.sql",
+    "translation_keys_batch_014.sql",
+    "translation_keys_batch_015.sql",
+    "translation_keys_batch_016.sql",
+    "translation_keys_batch_017.sql",
+    "translation_keys_batch_018.sql",
+    "translation_keys_batch_019.sql",
+    "translation_keys_batch_020.sql"
+  ]
+}
