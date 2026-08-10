@@ -215,9 +215,10 @@ as $$
     select
       lb.*,
       (
-        lb.contribution_points
-        + (lb.approved_suggestions_count * 40)
-        + (lb.reputation_score * 6)
+        (lb.contribution_points * 2)
+        + (lb.reputation_score * 12)
+        + (lb.approved_suggestions_count * 55)
+        + (round(lb.approval_rate)::bigint * 4)
       )::bigint as ranking_score
     from leaderboard_base lb
     where public.role_rank(lb.role) >= public.role_rank('translator')
@@ -228,9 +229,10 @@ as $$
     select
       lb.*,
       (
-        lb.contribution_points
-        + (lb.approved_reviews_count * 45)
-        + (lb.reputation_score * 8)
+        (lb.contribution_points * 2)
+        + (lb.reputation_score * 12)
+        + (lb.approved_reviews_count * 60)
+        + (round(lb.approval_rate)::bigint * 4)
       )::bigint as ranking_score
     from leaderboard_base lb
     where public.role_rank(lb.role) >= public.role_rank('reviewer')
@@ -241,9 +243,9 @@ as $$
     select
       lb.*,
       (
-        lb.contribution_points
-        + (lb.badges_count * 60)
-        + (lb.reputation_score * 4)
+        (lb.contribution_points * 2)
+        + (lb.reputation_score * 10)
+        + (lb.badges_count * 80)
       )::bigint as ranking_score
     from leaderboard_base lb
     where coalesce(lb.badges_count, 0) > 0
