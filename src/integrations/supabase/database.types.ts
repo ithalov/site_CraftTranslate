@@ -1200,6 +1200,42 @@ export type Database = {
             vote_id: string;
           }[];
         };
+        review_workspace_session: {
+          Args: {
+            batch_size?: number;
+            session_offset?: number;
+            target_language_code?: string | null;
+          };
+          Returns: {
+            batch_size: number;
+            has_more: boolean;
+            items: Json;
+            loaded_count: number;
+            session_id: string;
+            session_offset: number;
+            target_language_code: string;
+            target_language_emoji: string | null;
+            target_language_id: string;
+            target_language_name: string;
+            target_language_native_name: string;
+            total_available: number;
+          }[];
+        };
+        review_workspace_submit: {
+          Args: {
+            correction_text?: string | null;
+            decision: string;
+            notes?: string | null;
+            suggestion_id: string;
+          };
+          Returns: {
+            created_at: string;
+            correction_suggestion_id: string | null;
+            decision: string;
+            review_id: string;
+            reviewed_suggestion_id: string;
+          }[];
+        };
         translation_workspace_detect_duplicate: {
           Args: {
             suggestion_text: string;
