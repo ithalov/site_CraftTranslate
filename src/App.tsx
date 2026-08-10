@@ -10,6 +10,7 @@ import { paths } from '@/navigation/paths';
 import { HomePage } from '@/pages/HomePage';
 import { StatusPage } from '@/pages/StatusPage';
 import { LanguagesPage } from '@/pages/LanguagesPage';
+import { LanguageDetailPage } from '@/pages/LanguageDetailPage';
 import { TranslatePage } from '@/pages/TranslatePage';
 import { ReviewPage } from '@/pages/ReviewPage';
 import { GlossaryPage } from '@/pages/GlossaryPage';
@@ -43,6 +44,7 @@ export default function App() {
               <Route element={<DashboardLayout />}>
                 <Route path={paths.dashboard} element={<DashboardPage />} />
                 <Route path={paths.languages} element={<LanguagesPage />} />
+                <Route path={paths.languageDetail} element={<LanguageDetailPage />} />
                 <Route path={paths.translate} element={<TranslatePage />} />
                 <Route path={paths.review} element={<ReviewPage />} />
                 <Route path={paths.glossary} element={<GlossaryPage />} />

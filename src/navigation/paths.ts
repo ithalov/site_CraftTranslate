@@ -2,6 +2,7 @@ export const paths = {
   home: '/',
   status: '/status',
   languages: '/languages',
+  languageDetail: '/languages/:code',
   translate: '/translate',
   review: '/review',
   glossary: '/glossary',

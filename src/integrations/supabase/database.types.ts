@@ -1113,6 +1113,67 @@ export type Database = {
           username: string | null;
         }[];
       };
+      public_language_catalog: {
+        Args: Record<string, never>;
+        Returns: {
+          active_moderators: number;
+          active_reviewers: number;
+          active_translators: number;
+          approved_suggestions: number;
+          collaborators_count: number;
+          code: string;
+          direction: string;
+          emoji: string | null;
+          glossary_proposals: number;
+          glossary_terms: number;
+          language_id: string;
+          name: string;
+          native_name: string;
+          official_count: number;
+          official_percent: number;
+          reviewed_count: number;
+          reviewed_percent: number;
+          total_strings: number;
+          translated_count: number;
+          translated_percent: number;
+          translation_keys: number;
+          translation_suggestions: number;
+        }[];
+      };
+      public_language_page: {
+        Args: {
+          language_code: string;
+        };
+        Returns: {
+          active_moderators: number;
+          active_reviewers: number;
+          active_translators: number;
+          approved_suggestions: number;
+          categories: Json;
+          code: string;
+          collaborators_count: number;
+          direction: string;
+          emoji: string | null;
+          glossary_proposals: number;
+          glossary_terms: number;
+          language_id: string;
+          lead_member: Json;
+          name: string;
+          native_name: string;
+          official_count: number;
+          official_percent: number;
+          reviewers: Json;
+          reviewed_count: number;
+          reviewed_percent: number;
+          team_members: Json;
+          top_contributors: Json;
+          total_strings: number;
+          translated_count: number;
+          translated_percent: number;
+          translation_keys: number;
+          translation_suggestions: number;
+        }[];
+      };
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;
