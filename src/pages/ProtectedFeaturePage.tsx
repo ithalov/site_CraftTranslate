@@ -13,6 +13,7 @@ type ProtectedFeaturePageProps = {
     label: string;
     value: number;
   }>;
+  progressTitle?: string;
 };
 
 export function ProtectedFeaturePage({
@@ -20,11 +21,12 @@ export function ProtectedFeaturePage({
   title,
   description,
   items,
-  progress
+  progress,
+  progressTitle
 }: ProtectedFeaturePageProps) {
   return (
     <PageShell eyebrow={eyebrow} title={title} description={description}>
-      <FeatureGrid items={items} progress={progress} />
+      <FeatureGrid items={items} progress={progress} progressTitle={progressTitle} />
     </PageShell>
   );
 }

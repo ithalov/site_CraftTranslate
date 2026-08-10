@@ -11,15 +11,16 @@ type FeatureGridProps = {
     label: string;
     value: number;
   }>;
+  progressTitle?: string;
 };
 
-export function FeatureGrid({ items, progress }: FeatureGridProps) {
+export function FeatureGrid({ items, progress, progressTitle = 'Server progress' }: FeatureGridProps) {
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <Card className="p-6 md:p-7">
         <div className="grid gap-4 md:grid-cols-2">
           {items.map((item) => (
-            <div key={item.title} className="rounded-md border-2 border-[#101114] bg-white p-4 transition hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[5px_5px_0_#101114]">
+            <div key={item.title} className="group rounded-xl border-2 border-[#101114] bg-white p-4 transition duration-200 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[5px_5px_0_#101114]">
               <p className="font-[var(--font-display)] font-bold text-[#101114]">{item.title}</p>
               <p className="mt-2 text-sm leading-6 text-[#566172]">{item.description}</p>
             </div>
@@ -28,7 +29,7 @@ export function FeatureGrid({ items, progress }: FeatureGridProps) {
       </Card>
 
       <Card className="p-6 md:p-7">
-        <p className="pixel-label mb-4 text-[10px] text-[#566172]">Server progress</p><div className="flex flex-wrap gap-2">
+        <p className="pixel-label mb-4 text-[10px] text-[#566172]">{progressTitle}</p><div className="flex flex-wrap gap-2">
           <StatusPill tone="accent">beta</StatusPill>
           <StatusPill tone="success">ready</StatusPill>
           <StatusPill tone="warning">planned</StatusPill>

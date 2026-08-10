@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { classNames } from '@/utils/classNames';
+import { useLocale } from '@/hooks/useLocale';
 import {
   createEmptyPreference,
   loadLanguagePreferences,
@@ -24,6 +25,43 @@ type LanguagePreferencesEditorProps = {
 
 const editableProficiencies = ['beginner', 'intermediate', 'fluent', 'native'] as const;
 
+const localizedCopy = {
+  'pt-BR': {
+    onboarding: 'Configuracao inicial', languages: 'Idiomas', onboardingTitle: 'Quais idiomas voce conhece?', profileTitle: 'Edite seus idiomas',
+    onboardingLead: 'Usamos estas informacoes para enviar tarefas de traducao e revisao compativeis com seus idiomas e permissoes.',
+    profileLead: 'Mantenha os idiomas atualizados para que tarefas e filas de revisao correspondam as suas habilidades reais.',
+    language: 'Idioma', choose: 'Selecione um idioma', proficiency: 'Nivel de dominio', notes: 'Observacoes', notesPlaceholder: 'Opcional: dialeto, contexto ou nivel de conforto',
+    primary: 'Principal', selected: 'Idioma principal do seu perfil', setPrimary: 'Definir como idioma principal', remove: 'Remover idioma', add: 'Adicionar outro idioma',
+    saving: 'Salvando...', finish: 'Concluir configuracao', save: 'Salvar idiomas', chooseLanguage: 'Selecione um idioma',
+    primarySummary: 'Idioma principal exibido no perfil.', secondarySummary: 'Idioma adicional para tarefas.', loadError: 'Nao foi possivel carregar os idiomas.',
+    savedOnboarding: 'Idiomas salvos. A configuracao inicial foi concluida.', savedProfile: 'Preferencias de idioma atualizadas.', saveError: 'Nao foi possivel salvar.',
+    levels: { beginner: 'Iniciante', intermediate: 'Intermediario', fluent: 'Fluente', native: 'Nativo' },
+    access: { beginner: 'Treinamento', intermediate: 'Traducao', fluent: 'Traducao e revisao', native: 'Traducao e revisao' }
+  },
+  en: {
+    onboarding: 'Onboarding', languages: 'Languages', onboardingTitle: 'Which languages do you know?', profileTitle: 'Edit your languages',
+    onboardingLead: 'We use this to send translation and review tasks compatible with your languages and roles.',
+    profileLead: 'Keep this current so tasks and review queues match your real language skills.',
+    language: 'Language', choose: 'Choose a language', proficiency: 'Proficiency', notes: 'Notes', notesPlaceholder: 'Optional: dialect, context, or comfort level',
+    primary: 'Primary', selected: 'Primary language for your profile', setPrimary: 'Set as primary language', remove: 'Remove language', add: 'Add another language',
+    saving: 'Saving...', finish: 'Finish onboarding', save: 'Save languages', chooseLanguage: 'Choose a language', primarySummary: 'Primary language shown on the profile.', secondarySummary: 'Additional language for assignments.', loadError: 'Unable to load languages.',
+    savedOnboarding: 'Languages saved. Onboarding is complete.', savedProfile: 'Language preferences updated.', saveError: 'Unable to save.',
+    levels: { beginner: 'Beginner', intermediate: 'Intermediate', fluent: 'Fluent', native: 'Native' },
+    access: { beginner: 'Training only', intermediate: 'Translation', fluent: 'Translation and review', native: 'Translation and review' }
+  },
+  es: {
+    onboarding: 'Configuracion inicial', languages: 'Idiomas', onboardingTitle: 'Que idiomas conoces?', profileTitle: 'Edita tus idiomas',
+    onboardingLead: 'Usamos esto para enviar tareas de traduccion y revision compatibles con tus idiomas y roles.',
+    profileLead: 'Mantenlos actualizados para que las tareas y colas coincidan con tus habilidades reales.',
+    language: 'Idioma', choose: 'Elige un idioma', proficiency: 'Nivel', notes: 'Notas', notesPlaceholder: 'Opcional: dialecto, contexto o nivel de comodidad',
+    primary: 'Principal', selected: 'Idioma principal de tu perfil', setPrimary: 'Definir como idioma principal', remove: 'Eliminar idioma', add: 'Agregar otro idioma',
+    saving: 'Guardando...', finish: 'Finalizar configuracion', save: 'Guardar idiomas', chooseLanguage: 'Elige un idioma', primarySummary: 'Idioma principal mostrado en el perfil.', secondarySummary: 'Idioma adicional para tareas.', loadError: 'No se pudieron cargar los idiomas.',
+    savedOnboarding: 'Idiomas guardados. La configuracion inicial termino.', savedProfile: 'Preferencias de idioma actualizadas.', saveError: 'No se pudo guardar.',
+    levels: { beginner: 'Principiante', intermediate: 'Intermedio', fluent: 'Fluido', native: 'Nativo' },
+    access: { beginner: 'Solo entrenamiento', intermediate: 'Traduccion', fluent: 'Traduccion y revision', native: 'Traduccion y revision' }
+  }
+} as const;
+
 function languageLabel(language: LanguageRow) {
   const parts = [language.emoji, language.name, language.native_name].filter(Boolean);
   return parts.join(' - ');
@@ -44,6 +82,8 @@ export function LanguagePreferencesEditor({
   mode = 'profile',
   onSaved
 }: LanguagePreferencesEditorProps) {
+  const { locale } = useLocale();
+  const copy = localizedCopy[locale];
   const [languages, setLanguages] = useState<LanguageRow[]>([]);
   const [rows, setRows] = useState<LanguagePreferenceDraft[]>([createEmptyPreference()]);
   const [persistedRows, setPersistedRows] = useState<UserLanguageRow[]>([]);
@@ -72,7 +112,7 @@ export function LanguagePreferencesEditor({
         setRows(preferences.length > 0 ? preferences : [createEmptyPreference()]);
       } catch (loadError) {
         if (active) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load languages.');
+          setError(loadError instanceof Error ? loadError.message : copy.loadError);
         }
       } finally {
         if (active) {
@@ -86,7 +126,7 @@ export function LanguagePreferencesEditor({
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [copy.loadError, userId]);
 
   const selectedLanguageIds = useMemo(
     () => rows.map((row) => row.language_id).filter(Boolean),
@@ -182,14 +222,10 @@ export function LanguagePreferencesEditor({
             }))
           : [createEmptyPreference()]
       );
-      setSuccess(
-        mode === 'onboarding'
-          ? 'Idiomas salvos. O onboarding foi concluido.'
-          : 'Preferencias de idioma atualizadas.'
-      );
+      setSuccess(mode === 'onboarding' ? copy.savedOnboarding : copy.savedProfile);
       onSaved?.(savedRows);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Nao foi possivel salvar.');
+      setError(saveError instanceof Error ? saveError.message : copy.saveError);
     } finally {
       setSaving(false);
     }
@@ -212,23 +248,23 @@ export function LanguagePreferencesEditor({
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="pixel-label text-[10px] text-[#566172]">
-            {mode === 'onboarding' ? 'Onboarding' : 'Languages'}
+            {mode === 'onboarding' ? copy.onboarding : copy.languages}
           </p>
           <h2 className="minecraft-title mt-2 text-3xl text-[#101114]">
-            {mode === 'onboarding' ? 'Tell us the languages you know' : 'Edit your languages'}
+            {mode === 'onboarding' ? copy.onboardingTitle : copy.profileTitle}
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[#566172]">
             {mode === 'onboarding'
-              ? 'We use this to send translation and review tasks only for compatible languages and roles.'
-              : 'Keep this updated so assignments and review queues stay aligned with your real language skills.'}
+              ? copy.onboardingLead
+              : copy.profileLead}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Badge tone="neutral">Native</Badge>
-          <Badge tone="neutral">Fluent</Badge>
-          <Badge tone="neutral">Intermediate</Badge>
-          <Badge tone="neutral">Beginner</Badge>
+          <Badge tone="neutral">{copy.levels.native}</Badge>
+          <Badge tone="neutral">{copy.levels.fluent}</Badge>
+          <Badge tone="neutral">{copy.levels.intermediate}</Badge>
+          <Badge tone="neutral">{copy.levels.beginner}</Badge>
         </div>
       </div>
 
@@ -240,20 +276,20 @@ export function LanguagePreferencesEditor({
           return (
             <div
               key={row.id ?? `${index}-${row.language_id || 'new'}`}
-              className="rounded-2xl border-2 border-[#101114] bg-[#fdfdfd] p-4 shadow-[4px_4px_0_#101114]"
+              className="rounded-2xl border-2 border-[#101114] bg-[#fdfdfd] p-4 shadow-[4px_4px_0_#101114] transition duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#101114]"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
                   <label className="grid gap-2">
                     <span className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">
-                      Language
+                      {copy.language}
                     </span>
                     <select
                       value={row.language_id}
                       onChange={(event) => updateRow(index, { language_id: event.target.value })}
                       className="w-full rounded-lg border-2 border-[#101114] bg-white px-3 py-3 text-sm font-medium text-[#101114] outline-none transition focus:border-[#4cc9f0]"
                     >
-                      <option value="">Choose a language</option>
+                      <option value="">{copy.choose}</option>
                       {languages.map((language) => (
                         <option
                           key={language.id}
@@ -268,7 +304,7 @@ export function LanguagePreferencesEditor({
 
                   <label className="grid gap-2">
                     <span className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">
-                      Proficiency
+                      {copy.proficiency}
                     </span>
                     <select
                       value={row.proficiency}
@@ -281,7 +317,7 @@ export function LanguagePreferencesEditor({
                     >
                       {editableProficiencies.map((proficiency) => (
                         <option key={proficiency} value={proficiency}>
-                          {formatLanguageLevel(proficiency)}
+                          {copy.levels[proficiency] ?? formatLanguageLevel(proficiency)}
                         </option>
                       ))}
                     </select>
@@ -289,12 +325,12 @@ export function LanguagePreferencesEditor({
 
                   <label className="grid gap-2 md:col-span-2">
                     <span className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">
-                      Notes
+                      {copy.notes}
                     </span>
                     <input
                       value={row.notes}
                       onChange={(event) => updateRow(index, { notes: event.target.value })}
-                      placeholder="Optional note about dialect, context, or comfort level"
+                      placeholder={copy.notesPlaceholder}
                       className="w-full rounded-lg border-2 border-[#101114] bg-white px-3 py-3 text-sm text-[#101114] outline-none transition placeholder:text-[#9aa3b2] focus:border-[#4cc9f0]"
                     />
                   </label>
@@ -303,7 +339,7 @@ export function LanguagePreferencesEditor({
                 <div className="flex min-w-[220px] flex-col gap-3">
                   <div className="flex flex-wrap gap-2">
                     <Badge tone={access.canReview ? 'success' : access.canTranslate ? 'warning' : 'neutral'}>
-                      {access.description}
+                      {copy.access[row.proficiency === 'advanced' ? 'fluent' : row.proficiency] ?? access.description}
                     </Badge>
                     {currentLanguage ? <Badge tone="neutral">{currentLanguage.code}</Badge> : null}
                   </div>
@@ -319,10 +355,10 @@ export function LanguagePreferencesEditor({
                     )}
                   >
                     <span className="block text-[10px] uppercase tracking-[0.3em] text-[#566172]">
-                      Primary
+                      {copy.primary}
                     </span>
                     <span className="mt-1 block">
-                      {row.is_primary ? 'Selected for main profile routing' : 'Mark as primary language'}
+                      {row.is_primary ? copy.selected : copy.setPrimary}
                     </span>
                   </button>
 
@@ -331,7 +367,7 @@ export function LanguagePreferencesEditor({
                     onClick={() => removeRow(index)}
                     className="rounded-lg border-2 border-[#ff6b5f] bg-[#fff0ee] px-4 py-3 text-sm font-bold text-[#a83c34] transition hover:bg-[#ffe4df]"
                   >
-                    Remove language
+                    {copy.remove}
                   </button>
                 </div>
               </div>
@@ -346,7 +382,7 @@ export function LanguagePreferencesEditor({
           onClick={addRow}
           className="rounded-lg border-2 border-[#101114] bg-white px-4 py-3 text-sm font-bold text-[#101114] transition hover:bg-[#f3f6fa]"
         >
-          Add another language
+          {copy.add}
         </button>
 
         <button
@@ -361,10 +397,10 @@ export function LanguagePreferencesEditor({
           )}
         >
           {saving
-            ? 'Saving...'
+            ? copy.saving
             : mode === 'onboarding'
-              ? 'Finish onboarding'
-              : 'Save languages'}
+              ? copy.finish
+              : copy.save}
         </button>
       </div>
 
@@ -378,7 +414,7 @@ export function LanguagePreferencesEditor({
               {proficiencyDescriptions[row.proficiency]}
             </p>
             <p className="mt-1 text-sm text-[#566172]">
-              {row.is_primary ? 'Primary language for the profile.' : 'Secondary language for assignments.'}
+              {row.is_primary ? copy.primarySummary : copy.secondarySummary}
             </p>
           </div>
         ))}

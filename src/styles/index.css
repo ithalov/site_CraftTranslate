@@ -42,13 +42,19 @@ button, input, select, textarea { font: inherit; }
 ::-webkit-scrollbar-thumb { background: #b6bfcb; border: 3px solid #f0f2f6; }
 
 @keyframes block-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
-.pixel-panel { border: 2px solid #101114; border-radius: 8px; box-shadow: 6px 6px 0 #101114; background: #fff; }
+@keyframes soft-pop { 0% { opacity: 0; transform: translateY(12px) scale(.985); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes shine-sweep { 0% { transform: translateX(-130%); } 100% { transform: translateX(190%); } }
+.pixel-panel { border: 2px solid #101114; border-radius: 14px; box-shadow: 6px 6px 0 #101114; background: #fff; }
 .pixel-panel::before { display: none; }
 .minecraft-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -.045em; text-transform: none; text-shadow: none; }
 .pixel-label { font-family: var(--font-display); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
-.block-button { border: 2px solid #101114; border-radius: 8px; background: var(--color-accent); box-shadow: none; color: #101114; text-transform: none; font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
+.block-button { border: 2px solid #101114; border-radius: 10px; background: var(--color-accent); box-shadow: none; color: #101114; text-transform: none; font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
 .block-button:hover { background: #d7fa8e; transform: translate(-3px, -3px); box-shadow: 7px 7px 0 #101114; }
 .block-button:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 #101114; }
-.block-button-secondary { border: 2px solid #101114; border-radius: 8px; background: #fff; box-shadow: none; color: #101114; text-transform: none; font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
+.block-button-secondary { border: 2px solid #101114; border-radius: 10px; background: #fff; box-shadow: none; color: #101114; text-transform: none; font-family: var(--font-display); font-weight: 700; letter-spacing: 0; }
 .block-button-secondary:hover { background: #f0f2f6; transform: translate(-3px, -3px); box-shadow: 7px 7px 0 #101114; }
 .chat-line { border-left: 5px solid var(--color-accent-2); background: #f7f8fb; }
+.page-enter > * { animation: soft-pop .45s both; }
+.page-enter > *:nth-child(2) { animation-delay: .07s; }
+.page-enter > *:nth-child(3) { animation-delay: .14s; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }

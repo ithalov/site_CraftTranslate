@@ -10,7 +10,7 @@ export function DashboardLayout({ children }: PropsWithChildren) {
         <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
           <DashboardSidebar />
         </div>
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className="page-enter flex min-w-0 flex-col gap-6">
           <DashboardTopbar />
           {children ?? <Outlet />}
         </div>
