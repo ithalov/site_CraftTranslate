@@ -23,27 +23,80 @@ export function AuthCallbackPage() {
         return;
       }
 
+      if (isAuthenticated) {
+        if (active) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setConsumed(true);
+          navigate(paths.profile, { replace: true });
+        }
+        return;
+      }
+
       const currentUrl = new URL(window.location.href);
       const code = currentUrl.searchParams.get('code');
       const authError = currentUrl.searchParams.get('error_description') ?? currentUrl.searchParams.get('error');
+      const handledCodeKey = 'chattranslate_oauth_handled_code';
 
       if (authError) {
+        if (authError.includes('flow_state_already_used')) {
+          const { data } = await supabase.auth.getSession();
+
+          if (!active) {
+            return;
+          }
+
+          if (data.session) {
+            window.history.replaceState({}, document.title, currentUrl.pathname);
+            setConsumed(true);
+            navigate(paths.profile, { replace: true });
+            return;
+          }
+        }
+
         setError(authError);
         setConsumed(true);
         return;
       }
 
       if (code) {
+        const previouslyHandledCode = window.sessionStorage.getItem(handledCodeKey);
+
+        if (previouslyHandledCode === code) {
+          window.history.replaceState({}, document.title, currentUrl.pathname);
+          setConsumed(true);
+          navigate(paths.profile, { replace: true });
+          return;
+        }
+
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (!active) {
           return;
         }
 
         if (exchangeError) {
+          if (exchangeError.message.includes('flow_state_already_used')) {
+            const { data } = await supabase.auth.getSession();
+
+            if (!active) {
+              return;
+            }
+
+            if (data.session) {
+              window.sessionStorage.setItem(handledCodeKey, code);
+              window.history.replaceState({}, document.title, currentUrl.pathname);
+              setConsumed(true);
+              navigate(paths.profile, { replace: true });
+              return;
+            }
+          }
+
           setError(exchangeError.message);
           setConsumed(true);
           return;
         }
+
+        window.sessionStorage.setItem(handledCodeKey, code);
+        window.history.replaceState({}, document.title, currentUrl.pathname);
       }
 
       if (active) {
@@ -57,7 +110,7 @@ export function AuthCallbackPage() {
     return () => {
       active = false;
     };
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   if (isAuthenticated && consumed && !error) {
     return <Navigate to={paths.profile} replace state={{ from: location }} />;

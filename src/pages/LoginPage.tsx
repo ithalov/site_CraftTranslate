@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { BrandLogo } from '@/components/branding/BrandLogo';
@@ -12,12 +12,8 @@ import { getRouterBasename } from '@/navigation/basename';
 export function LoginPage() {
   const { signInWithDiscord } = useAuth();
   const { appName } = useAppConfig();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
 
   const handleSignIn = async () => {
     setError(null);
@@ -29,10 +25,6 @@ export function LoginPage() {
       }
 
       await signInWithDiscord();
-
-      if (fromPath) {
-        navigate(fromPath, { replace: true });
-      }
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Unable to continue with Discord.');
     } finally {
