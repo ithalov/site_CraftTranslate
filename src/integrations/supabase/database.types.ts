@@ -961,14 +961,26 @@ export type Database = {
         Relationships: [];
       };
     };
-    Functions: {
-      handle_new_user: {
-        Args: Record<string, never>;
-        Returns: unknown;
-      };
-      public_language_progress: {
-        Args: Record<string, never>;
-        Returns: {
+      Functions: {
+        can_translate_language: {
+          Args: {
+            language_uuid: string;
+          };
+          Returns: boolean;
+        };
+        handle_new_user: {
+          Args: Record<string, never>;
+          Returns: unknown;
+        };
+        language_proficiency_rank: {
+          Args: {
+            proficiency: string;
+          };
+          Returns: number;
+        };
+        public_language_progress: {
+          Args: Record<string, never>;
+          Returns: {
           active_moderators: number;
           active_reviewers: number;
           active_translators: number;
@@ -1140,11 +1152,11 @@ export type Database = {
           translation_suggestions: number;
         }[];
       };
-      public_language_page: {
-        Args: {
-          language_code: string;
-        };
-        Returns: {
+        public_language_page: {
+          Args: {
+            language_code: string;
+          };
+          Returns: {
           active_moderators: number;
           active_reviewers: number;
           active_translators: number;
@@ -1172,13 +1184,51 @@ export type Database = {
           total_strings: number;
           translated_count: number;
           translated_percent: number;
-          translation_keys: number;
-          translation_suggestions: number;
-        }[];
-      };
-      is_admin: {
-        Args: Record<string, never>;
-        Returns: boolean;
+            translation_keys: number;
+            translation_suggestions: number;
+          }[];
+        };
+        translation_workspace_session: {
+          Args: {
+            batch_size?: number;
+            category_slug?: string | null;
+            session_offset?: number;
+            target_language_code?: string | null;
+          };
+          Returns: {
+            batch_size: number;
+            category_slug: string;
+            has_more: boolean;
+            items: Json;
+            loaded_count: number;
+            session_id: string;
+            session_offset: number;
+            target_language_code: string;
+            target_language_emoji: string | null;
+            target_language_id: string;
+            target_language_name: string;
+            target_language_native_name: string;
+            total_available: number;
+          }[];
+        };
+        translation_workspace_submit: {
+          Args: {
+            notes?: string | null;
+            rationale?: string | null;
+            suggestion_text: string;
+            target_language_code: string;
+            translation_key_id: string;
+          };
+          Returns: {
+            created_at: string;
+            status: string;
+            suggestion_id: string;
+            version_number: number;
+          }[];
+        };
+        is_admin: {
+          Args: Record<string, never>;
+          Returns: boolean;
       };
       is_moderator_or_admin: {
         Args: Record<string, never>;
