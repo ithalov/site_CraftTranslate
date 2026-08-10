@@ -51,6 +51,13 @@ export type TranslationWorkspaceItem = {
   glossary_terms: TranslationWorkspaceGlossaryTerm[];
 };
 
+export type TranslationWorkspacePlaceholderValidation = {
+  valid: boolean;
+  required: string[];
+  missing: string[];
+  extra: string[];
+};
+
 export type TranslationWorkspaceSession = {
   session_id: string;
   target_language_id: string;
@@ -173,6 +180,59 @@ function parseItems(value: Json): TranslationWorkspaceItem[] {
   }
 
   return value.map(parseItem).filter((item): item is TranslationWorkspaceItem => item !== null && item.translation_key_id.length > 0);
+}
+
+function extractPlaceholders(text: string) {
+  const matches = text.match(/(\{[A-Za-z0-9_]+\}|%[sd])/g);
+
+  return matches ?? [];
+}
+
+function toCounts(values: string[]) {
+  const counts = new Map<string, number>();
+
+  values.forEach((value) => {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  });
+
+  return counts;
+}
+
+export function validateTranslationPlaceholders(originalText: string, translatedText: string): TranslationWorkspacePlaceholderValidation {
+  const required = extractPlaceholders(originalText);
+  const translated = extractPlaceholders(translatedText);
+  const requiredCounts = toCounts(required);
+  const translatedCounts = toCounts(translated);
+  const requiredUnique = [...new Set(required)];
+  const extra = [...new Set(translated)];
+  const missing: string[] = [];
+  const extraTokens: string[] = [];
+
+  requiredUnique.forEach((token) => {
+    const requiredCount = requiredCounts.get(token) ?? 0;
+    const translatedCount = translatedCounts.get(token) ?? 0;
+
+    if (translatedCount < requiredCount) {
+      missing.push(token);
+    }
+
+    if (translatedCount > requiredCount) {
+      extraTokens.push(token);
+    }
+  });
+
+  extra.forEach((token) => {
+    if (!requiredCounts.has(token)) {
+      extraTokens.push(token);
+    }
+  });
+
+  return {
+    valid: missing.length === 0 && extraTokens.length === 0,
+    required: requiredUnique,
+    missing,
+    extra: [...new Set(extraTokens)]
+  };
 }
 
 function normalizeSessionRow(row: TranslationWorkspaceSessionRow): TranslationWorkspaceSession {

@@ -353,6 +353,10 @@ declare
   v_version_number integer;
   v_suggestion_id uuid;
   v_clean_text text;
+  v_source_text text;
+  v_missing_tokens text[] := array[]::text[];
+  v_extra_tokens text[] := array[]::text[];
+  v_record record;
 begin
   if auth.uid() is null then
     raise exception 'Authentication required';
@@ -383,6 +387,48 @@ begin
       and tk.status = 'active'
   ) then
     raise exception 'Translation key not available';
+  end if;
+
+  select tk.original_text
+    into v_source_text
+  from public.translation_keys tk
+  where tk.id = translation_key_id;
+
+  for v_record in
+    with source_tokens as (
+      select token, count(*)::int as occurrence_count
+      from (
+        select (match)[1] as token
+        from regexp_matches(coalesce(v_source_text, ''), '(\{[A-Za-z0-9_]+\}|%[sd])', 'g') as match
+      ) tokens
+      group by token
+    ),
+    translation_tokens as (
+      select token, count(*)::int as occurrence_count
+      from (
+        select (match)[1] as token
+        from regexp_matches(v_clean_text, '(\{[A-Za-z0-9_]+\}|%[sd])', 'g') as match
+      ) tokens
+      group by token
+    )
+    select
+      coalesce(source_tokens.token, translation_tokens.token) as token,
+      coalesce(source_tokens.occurrence_count, 0) as source_count,
+      coalesce(translation_tokens.occurrence_count, 0) as translation_count
+    from source_tokens
+    full join translation_tokens on translation_tokens.token = source_tokens.token
+  loop
+    if v_record.translation_count < v_record.source_count then
+      v_missing_tokens := array_append(v_missing_tokens, v_record.token);
+    end if;
+
+    if v_record.translation_count > v_record.source_count then
+      v_extra_tokens := array_append(v_extra_tokens, v_record.token);
+    end if;
+  end loop;
+
+  if coalesce(array_length(v_missing_tokens, 1), 0) > 0 or coalesce(array_length(v_extra_tokens, 1), 0) > 0 then
+    raise exception 'Placeholder mismatch. Missing: %, extra: %', v_missing_tokens, v_extra_tokens;
   end if;
 
   select coalesce(max(ts.version_number), 0) + 1

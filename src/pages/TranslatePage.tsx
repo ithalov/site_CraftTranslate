@@ -8,7 +8,8 @@ import { paths } from '@/navigation/paths';
 import {
   fetchTranslationWorkspaceSession,
   submitTranslationWorkspaceSuggestion,
-  type TranslationWorkspaceSession
+  type TranslationWorkspaceSession,
+  validateTranslationPlaceholders
 } from '@/services/translationWorkspace';
 
 type Copy = {
@@ -26,6 +27,7 @@ type Copy = {
   category: string;
   subcategory: string;
   context: string;
+  contextPack: string;
   glossary: string;
   protectedVars: string;
   protectedTerms: string;
@@ -51,6 +53,11 @@ type Copy = {
   totalAvailable: string;
   compatible: string;
   noSuggestion: string;
+  placeholderGuardTitle: string;
+  placeholderGuardBlocked: string;
+  placeholderGuardPreserve: string;
+  placeholderGuardMissing: string;
+  placeholderGuardExtra: string;
 };
 
 const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
@@ -69,6 +76,7 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     category: 'Categoria',
     subcategory: 'Subcategoria',
     context: 'Contexto',
+    contextPack: 'Context Pack',
     glossary: 'Glossario',
     protectedVars: 'Variaveis protegidas',
     protectedTerms: 'Termos protegidos',
@@ -94,6 +102,11 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     totalAvailable: 'Disponiveis',
     compatible: 'Compativel com seu perfil',
     noSuggestion: 'Nenhuma sugestao automatica disponivel.',
+    placeholderGuardTitle: 'Variaveis protegidas',
+    placeholderGuardBlocked: 'A traducao foi bloqueada porque um placeholder obrigatorio foi removido ou alterado.',
+    placeholderGuardPreserve: 'Preserve exatamente estes tokens:',
+    placeholderGuardMissing: 'Faltando na traducao:',
+    placeholderGuardExtra: 'Tokens inesperados:',
   },
   en: {
     eyebrow: 'Translate',
@@ -110,6 +123,7 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     category: 'Category',
     subcategory: 'Subcategory',
     context: 'Context',
+    contextPack: 'Context Pack',
     glossary: 'Glossary',
     protectedVars: 'Protected variables',
     protectedTerms: 'Protected terms',
@@ -135,6 +149,11 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     totalAvailable: 'Available',
     compatible: 'Compatible with your profile',
     noSuggestion: 'No automatic suggestion is available.',
+    placeholderGuardTitle: 'Protected variables',
+    placeholderGuardBlocked: 'The translation was blocked because a required placeholder was removed or changed.',
+    placeholderGuardPreserve: 'Preserve these tokens exactly:',
+    placeholderGuardMissing: 'Missing from translation:',
+    placeholderGuardExtra: 'Unexpected tokens:',
   },
   es: {
     eyebrow: 'Traducir',
@@ -151,6 +170,7 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     category: 'Categoria',
     subcategory: 'Subcategoria',
     context: 'Contexto',
+    contextPack: 'Context Pack',
     glossary: 'Glosario',
     protectedVars: 'Variables protegidas',
     protectedTerms: 'Terminos protegidos',
@@ -176,6 +196,11 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     totalAvailable: 'Disponibles',
     compatible: 'Compatible con tu perfil',
     noSuggestion: 'No hay sugerencia automatica disponible.',
+    placeholderGuardTitle: 'Variables protegidas',
+    placeholderGuardBlocked: 'La traduccion fue bloqueada porque un placeholder obligatorio fue removido o modificado.',
+    placeholderGuardPreserve: 'Preserva exactamente estos tokens:',
+    placeholderGuardMissing: 'Faltan en la traduccion:',
+    placeholderGuardExtra: 'Tokens inesperados:',
   }
 };
 
@@ -212,6 +237,13 @@ export function TranslatePage() {
   const [submitting, setSubmitting] = useState(false);
 
   const currentItem = session?.items[activeIndex] ?? null;
+  const placeholderValidation = useMemo(() => {
+    if (!currentItem) {
+      return null;
+    }
+
+    return validateTranslationPlaceholders(currentItem.original_text, translation);
+  }, [currentItem, translation]);
 
   async function loadSession(offset = 0, nextSession = false) {
     try {
@@ -283,6 +315,11 @@ export function TranslatePage() {
       return;
     }
 
+    if (placeholderValidation && !placeholderValidation.valid) {
+      setError(copy.placeholderGuardBlocked);
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
@@ -333,6 +370,7 @@ export function TranslatePage() {
   }
 
   const sessionBadge = categorySlug ? formatCategoryLabel(categorySlug) : copy.complete;
+  const hasPlaceholderWarning = Boolean(placeholderValidation && !placeholderValidation.valid);
 
   return (
     <PageShell eyebrow={copy.eyebrow} title={copy.title} description={copy.description}>
@@ -467,6 +505,64 @@ export function TranslatePage() {
                 </div>
               </div>
 
+              <div className="mt-6 rounded-2xl border-2 border-[#101114] bg-[#f7f8fb] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="pixel-label text-[10px] text-[#566172]">{copy.contextPack}</p>
+                  <Badge tone="neutral">{copy.placeholderGuardTitle}</Badge>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-[#dfe3ea] bg-white p-4">
+                    <p className="pixel-label text-[10px] text-[#566172]">{copy.sourceOriginal}</p>
+                    <p className="mt-2 text-sm leading-7 text-[#101114]">{currentItem.original_text}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#dfe3ea] bg-white p-4">
+                    <p className="pixel-label text-[10px] text-[#566172]">{copy.placeholderGuardPreserve}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(placeholderValidation?.required ?? []).length > 0 ? (
+                        placeholderValidation?.required.map((token) => (
+                          <Badge key={token} tone={hasPlaceholderWarning ? 'warning' : 'success'}>
+                            {token}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-sm text-[#566172]">{copy.noSuggestion}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl border border-[#dfe3ea] bg-white p-4">
+                    <p className="pixel-label text-[10px] text-[#566172]">{copy.category}</p>
+                    <p className="mt-2 text-sm font-bold text-[#101114]">{formatCategoryLabel(currentItem.category)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#dfe3ea] bg-white p-4">
+                    <p className="pixel-label text-[10px] text-[#566172]">{copy.subcategory}</p>
+                    <p className="mt-2 text-sm font-bold text-[#101114]">
+                      {currentItem.subcategory ? formatCategoryLabel(currentItem.subcategory) : '-'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[#dfe3ea] bg-white p-4">
+                    <p className="pixel-label text-[10px] text-[#566172]">{copy.context}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#101114]">{currentItem.context ?? '-'}</p>
+                  </div>
+                </div>
+                {hasPlaceholderWarning ? (
+                  <div className="mt-4 rounded-2xl border border-[#ff7b72] bg-[#fff4f2] p-4 text-sm text-[#b42318]">
+                    <p className="font-bold">{copy.placeholderGuardBlocked}</p>
+                    {placeholderValidation?.missing.length ? (
+                      <p className="mt-2">
+                        {copy.placeholderGuardMissing} {placeholderValidation.missing.join(', ')}
+                      </p>
+                    ) : null}
+                    {placeholderValidation?.extra.length ? (
+                      <p className="mt-2">
+                        {copy.placeholderGuardExtra} {placeholderValidation.extra.join(', ')}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4">
                   <p className="pixel-label text-[10px] text-[#566172]">{copy.protectedVars}</p>
@@ -550,7 +646,7 @@ export function TranslatePage() {
                 <button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={submitting || translation.trim().length === 0}
+                  disabled={submitting || translation.trim().length === 0 || hasPlaceholderWarning}
                   className="rounded-2xl border-2 border-[#101114] bg-[#c7f464] px-4 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:shadow-[4px_4px_0_#101114] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? copy.submitting : copy.submit}
