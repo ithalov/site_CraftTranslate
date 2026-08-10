@@ -12,12 +12,14 @@ import { buildPublicProfileHandle } from '@/utils/profilePaths';
 import {
   fetchPublicLanguagePage,
   type PublicLanguageCategory,
+  type PublicLanguageCategoryProgress,
   type PublicLanguageMember,
   type PublicLanguagePage as PublicLanguageData,
   type PublicLanguageTeamSection
 } from '@/services/publicLanguages';
 
 type RoleKey = 'translator' | 'trusted_translator' | 'reviewer' | 'language_moderator';
+type CategoryKey = 'general' | 'minecraft' | 'pvp' | 'mmorpg' | 'economy' | 'trading' | 'commands' | 'system_messages' | 'mods' | 'other';
 
 type DetailCopy = {
   eyebrow: string;
@@ -29,18 +31,26 @@ type DetailCopy = {
   reviewers: string;
   contributors: string;
   categories: string;
+  categoryProgress: string;
+  categoryProgressHint: string;
   overview: string;
   summary: string;
   progress: string;
+  translatedLabel: string;
+  reviewedLabel: string;
   translators: string;
   collaborators: string;
   officialLabel: string;
+  startSession: string;
+  resumeSession: string;
+  fullyCovered: string;
   noLead: string;
   noReviewers: string;
   noContributors: string;
   noTeam: string;
   noCategories: string;
   noSections: string;
+  noCategoryWork: string;
   teamHint: string;
   publicTeamHint: string;
   publicSummary: string;
@@ -58,6 +68,21 @@ const roleToneMap: Record<RoleKey, 'accent' | 'success' | 'warning' | 'danger'> 
   language_moderator: 'danger'
 };
 
+const categoryOrder: CategoryKey[] = ['general', 'minecraft', 'pvp', 'mmorpg', 'economy', 'trading', 'commands', 'system_messages', 'mods', 'other'];
+
+const categoryToneMap: Record<CategoryKey, 'accent' | 'success' | 'warning' | 'danger' | 'neutral'> = {
+  general: 'neutral',
+  minecraft: 'accent',
+  pvp: 'warning',
+  mmorpg: 'success',
+  economy: 'accent',
+  trading: 'success',
+  commands: 'warning',
+  system_messages: 'neutral',
+  mods: 'danger',
+  other: 'neutral'
+};
+
 const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
   'pt-BR': {
     eyebrow: 'Idioma',
@@ -69,19 +94,27 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     reviewers: 'Reviewers',
     contributors: 'Principais contribuidores',
     categories: 'Categorias',
+    categoryProgress: 'Progresso por categoria',
+    categoryProgressHint: 'Acompanhe o que ja foi traduzido, revisado e aprovado em cada area do idioma.',
     overview: 'Visao geral',
     summary: 'Resumo publico',
     progress: 'Progresso',
+    translatedLabel: 'Traduzido',
+    reviewedLabel: 'Revisado',
     translators: 'Tradutores',
     collaborators: 'Colaboradores',
     officialLabel: 'Oficial',
+    startSession: 'Iniciar sessao',
+    resumeSession: 'Continuar traduzindo',
+    fullyCovered: 'Categoria concluida',
     noLead: 'Ainda nao ha um lead publico para este idioma.',
     noReviewers: 'Nenhum reviewer publico encontrado.',
     noContributors: 'Nenhum contribuidor publico encontrado.',
     noTeam: 'Nenhuma equipe publica encontrada.',
     noCategories: 'Nenhuma categoria disponivel.',
     noSections: 'Nenhum bloco de equipe disponivel.',
-    teamHint: 'Papéis publicos do idioma, organizados por funcao e visiveis para a comunidade.',
+    noCategoryWork: 'Nenhuma categoria com trabalho pendente foi encontrada.',
+    teamHint: 'Papeis publicos do idioma, organizados por funcao e visiveis para a comunidade.',
     publicTeamHint: 'Acoes administrativas continuam protegidas; aqui aparecem apenas membros e funcoes publicas.',
     publicSummary: 'Esta pagina mostra progresso agregado, equipe publica e contribuicoes por funcao sem expor strings.',
     roleLabels: {
@@ -108,18 +141,26 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     reviewers: 'Reviewers',
     contributors: 'Top contributors',
     categories: 'Categories',
+    categoryProgress: 'Progress by category',
+    categoryProgressHint: 'Track what has already been translated, reviewed, and approved in each area of the language.',
     overview: 'Overview',
     summary: 'Public summary',
     progress: 'Progress',
+    translatedLabel: 'Translated',
+    reviewedLabel: 'Reviewed',
     translators: 'Translators',
     collaborators: 'Collaborators',
     officialLabel: 'Official',
+    startSession: 'Start session',
+    resumeSession: 'Continue translating',
+    fullyCovered: 'Category complete',
     noLead: 'No public lead has been set for this language yet.',
     noReviewers: 'No public reviewers were found.',
     noContributors: 'No public contributors were found.',
     noTeam: 'No public team members were found.',
     noCategories: 'No categories available.',
     noSections: 'No team sections available.',
+    noCategoryWork: 'No category with pending work was found.',
     teamHint: 'Public language roles, organized by function and visible to the community.',
     publicTeamHint: 'Administrative actions stay protected; only public members and roles are shown here.',
     publicSummary: 'This page shows aggregate progress, the public team, and role-based contributions without exposing strings.',
@@ -147,18 +188,26 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     reviewers: 'Reviewers',
     contributors: 'Principales contribuidores',
     categories: 'Categorias',
+    categoryProgress: 'Progreso por categoria',
+    categoryProgressHint: 'Sigue lo que ya fue traducido, revisado y aprobado en cada area del idioma.',
     overview: 'Resumen',
     summary: 'Resumen publico',
     progress: 'Progreso',
+    translatedLabel: 'Traducido',
+    reviewedLabel: 'Revisado',
     translators: 'Traductores',
     collaborators: 'Colaboradores',
     officialLabel: 'Oficial',
+    startSession: 'Iniciar sesion',
+    resumeSession: 'Seguir traduciendo',
+    fullyCovered: 'Categoria completa',
     noLead: 'Todavia no hay un lead publico para este idioma.',
     noReviewers: 'No se encontraron reviewers publicos.',
     noContributors: 'No se encontraron contribuidores publicos.',
     noTeam: 'No se encontraron miembros publicos del equipo.',
     noCategories: 'No hay categorias disponibles.',
     noSections: 'No hay bloques de equipo disponibles.',
+    noCategoryWork: 'No se encontro ninguna categoria con trabajo pendiente.',
     teamHint: 'Roles publicos del idioma, organizados por funcion y visibles para la comunidad.',
     publicTeamHint: 'Las acciones administrativas siguen protegidas; aqui solo aparecen miembros y roles publicos.',
     publicSummary: 'Esta pagina muestra progreso agregado, equipo publico y contribuciones por rol sin exponer strings.',
@@ -190,10 +239,6 @@ function memberHandle(member: PublicLanguageMember) {
   return buildPublicProfileHandle(member.username, member.display_name, member.user_id);
 }
 
-function roleTone(role: string): 'accent' | 'success' | 'warning' | 'danger' {
-  return roleToneMap[roleKey(role)];
-}
-
 function roleKey(role: string): RoleKey {
   if (role === 'translator' || role === 'trusted_translator' || role === 'reviewer' || role === 'language_moderator') {
     return role;
@@ -202,8 +247,35 @@ function roleKey(role: string): RoleKey {
   return 'translator';
 }
 
-function teamSectionLabel(section: PublicLanguageTeamSection, copy: DetailCopy) {
-  return copy.roleLabels[roleKey(section.role)];
+function roleTone(role: string): 'accent' | 'success' | 'warning' | 'danger' {
+  return roleToneMap[roleKey(role)];
+}
+
+function categoryKeyFromSlug(slug: string): CategoryKey {
+  if (
+    slug === 'general' ||
+    slug === 'minecraft' ||
+    slug === 'pvp' ||
+    slug === 'mmorpg' ||
+    slug === 'economy' ||
+    slug === 'trading' ||
+    slug === 'commands' ||
+    slug === 'system_messages' ||
+    slug === 'mods'
+  ) {
+    return slug;
+  }
+
+  return 'other';
+}
+
+function buildTranslationSessionPath(languageCode: string, categorySlug: string) {
+  const params = new URLSearchParams({
+    language: languageCode,
+    category: categorySlug
+  });
+
+  return `${paths.translate}?${params.toString()}`;
 }
 
 function TeamMemberCard({
@@ -255,6 +327,76 @@ function TeamMemberCard({
   );
 }
 
+function CategoryProgressCard({
+  item,
+  locale,
+  languageCode,
+  copy
+}: {
+  item: PublicLanguageCategoryProgress;
+  locale: 'pt-BR' | 'en' | 'es';
+  languageCode: string;
+  copy: DetailCopy;
+}) {
+  const tone = categoryToneMap[categoryKeyFromSlug(item.slug)];
+  const formatter = new Intl.NumberFormat(getLocaleTag(locale));
+  const isComplete = !item.has_open_work;
+  const sessionPath = buildTranslationSessionPath(languageCode, item.slug);
+
+  return (
+    <Card className="p-5 transition duration-200 hover:-translate-y-1 hover:shadow-[8px_8px_0_#101114]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="pixel-label text-[10px] text-[#566172]">{item.label}</p>
+          <h3 className="mt-2 text-2xl font-bold text-[#101114]">{item.label}</h3>
+          <p className="mt-2 text-sm leading-7 text-[#566172]">
+            {locale === 'pt-BR'
+              ? 'Acompanhe o progresso da categoria por traducao, revisao e aprovacao.'
+              : locale === 'es'
+                ? 'Sigue el progreso de la categoria por traduccion, revision y aprobacion.'
+                : 'Track the category progress through translation, review, and approval.'}
+          </p>
+        </div>
+        <Badge tone={tone}>{formatter.format(Math.round(item.official_percent))}%</Badge>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <ProgressBar label="Translated" value={Math.round(item.translated_percent)} tone="accent" />
+        <ProgressBar label="Reviewed" value={Math.round(item.reviewed_percent)} tone="success" />
+        <ProgressBar label="Official" value={Math.round(item.official_percent)} tone="warning" />
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4">
+          <p className="pixel-label text-[10px] text-[#566172]">{copy.translatedLabel}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#101114]">{formatter.format(Math.round(item.translated_percent))}%</p>
+        </div>
+        <div className="rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4">
+          <p className="pixel-label text-[10px] text-[#566172]">{copy.reviewedLabel}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#101114]">{formatter.format(Math.round(item.reviewed_percent))}%</p>
+        </div>
+        <div className="rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4">
+          <p className="pixel-label text-[10px] text-[#566172]">{copy.officialLabel}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#101114]">{formatter.format(Math.round(item.official_percent))}%</p>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#dfe3ea] pt-4">
+        <p className="text-sm text-[#566172]">
+          {formatter.format(item.total_strings)} {locale === 'pt-BR' ? 'strings' : locale === 'es' ? 'strings' : 'strings'}
+        </p>
+        {isComplete ? (
+          <Badge tone="success">{copy.fullyCovered}</Badge>
+        ) : (
+          <Link to={sessionPath} className="block-button inline-flex px-4 py-2 text-sm">
+            {copy.startSession}
+          </Link>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function TeamSectionCard({
   section,
   copy,
@@ -273,13 +415,11 @@ function TeamSectionCard({
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="pixel-label text-[10px] text-[#566172]">{teamSectionLabel(section, copy)}</p>
+          <p className="pixel-label text-[10px] text-[#566172]">{copy.roleLabels[sectionKey]}</p>
           <h3 className="mt-2 text-2xl font-bold text-[#101114]">{copy.roleLabels[sectionKey]}</h3>
           <p className="mt-2 max-w-2xl text-sm leading-7 text-[#566172]">{copy.roleDescriptions[sectionKey]}</p>
         </div>
-        <Badge tone={tone}>
-          {new Intl.NumberFormat(getLocaleTag(locale)).format(section.count)}
-        </Badge>
+        <Badge tone={tone}>{new Intl.NumberFormat(getLocaleTag(locale)).format(section.count)}</Badge>
       </div>
 
       <div className="mt-5 grid gap-3">
@@ -378,12 +518,26 @@ export function LanguageDetailPage() {
     ];
   }, [language]);
 
+  const orderedCategoryProgress = useMemo(() => {
+    if (!language) {
+      return [];
+    }
+
+    return [...language.category_progress].sort(
+      (left, right) => categoryOrder.indexOf(categoryKeyFromSlug(left.slug)) - categoryOrder.indexOf(categoryKeyFromSlug(right.slug))
+    );
+  }, [language]);
+
+  const incompleteCategories = useMemo(() => orderedCategoryProgress.filter((item) => item.has_open_work), [orderedCategoryProgress]);
+
   const orderedTeamSections = useMemo(() => {
     if (!language) {
       return [];
     }
 
-    return [...language.team_sections].sort((left, right) => roleOrder.indexOf(roleKey(left.role)) - roleOrder.indexOf(roleKey(right.role)));
+    return [...language.team_sections].sort(
+      (left, right) => roleOrder.indexOf(roleKey(left.role)) - roleOrder.indexOf(roleKey(right.role))
+    );
   }, [language]);
 
   if (loading) {
@@ -542,6 +696,42 @@ export function LanguageDetailPage() {
           </div>
         </Card>
 
+        <Card className="p-5 md:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="pixel-label text-[10px] text-[#566172]">{copy.categoryProgress}</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#101114]">{copy.categoryProgressHint}</h2>
+            </div>
+            {incompleteCategories.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {incompleteCategories.slice(0, 3).map((item) => (
+                  <Link
+                    key={item.slug}
+                    to={buildTranslationSessionPath(language.code, item.slug)}
+                    className="rounded-full border border-[#101114] bg-[#c7f464] px-4 py-2 text-sm font-bold text-[#101114] transition hover:-translate-y-1"
+                  >
+                    {copy.startSession} {item.label}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Badge tone="success">{copy.fullyCovered}</Badge>
+            )}
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {orderedCategoryProgress.length > 0 ? (
+              orderedCategoryProgress.map((item) => (
+                <CategoryProgressCard key={item.slug} item={item} locale={locale} languageCode={language.code} copy={copy} />
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
+                {copy.noCategoryWork}
+              </div>
+            )}
+          </div>
+        </Card>
+
         <div className="grid gap-4">
           <div className="rounded-3xl border-2 border-[#101114] bg-white p-5 md:p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -552,7 +742,8 @@ export function LanguageDetailPage() {
                 </h2>
               </div>
               <Badge tone="neutral">
-                {formatter.format(language.team_sections.reduce((sum, section) => sum + section.count, 0))} {locale === 'pt-BR' ? 'membros' : locale === 'es' ? 'miembros' : 'members'}
+                {formatter.format(language.team_sections.reduce((sum, section) => sum + section.count, 0))}{' '}
+                {locale === 'pt-BR' ? 'membros' : locale === 'es' ? 'miembros' : 'members'}
               </Badge>
             </div>
 

@@ -28,6 +28,19 @@ export type PublicLanguageCategory = {
   hint: string;
 };
 
+export type PublicLanguageCategoryProgress = {
+  slug: string;
+  label: string;
+  total_strings: number;
+  translated_count: number;
+  reviewed_count: number;
+  official_count: number;
+  translated_percent: number;
+  reviewed_percent: number;
+  official_percent: number;
+  has_open_work: boolean;
+};
+
 export type PublicLanguageTeamSection = {
   role: string;
   count: number;
@@ -58,6 +71,7 @@ export type PublicLanguagePage = {
   glossary_terms: number;
   glossary_proposals: number;
   lead_member: PublicLanguageMember | null;
+  category_progress: PublicLanguageCategoryProgress[];
   team_sections: PublicLanguageTeamSection[];
   reviewers: PublicLanguageMember[];
   team_members: PublicLanguageMember[];
@@ -139,6 +153,35 @@ function parseCategories(value: Json): PublicLanguageCategory[] {
     .filter((item): item is PublicLanguageCategory => item !== null && item.slug.length > 0);
 }
 
+function parseCategoryProgress(value: Json): PublicLanguageCategoryProgress[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return null;
+      }
+
+      const category = item as Record<string, Json | undefined>;
+
+      return {
+        slug: String(category.slug ?? ''),
+        label: String(category.label ?? ''),
+        total_strings: toNumber(category.total_strings),
+        translated_count: toNumber(category.translated_count),
+        reviewed_count: toNumber(category.reviewed_count),
+        official_count: toNumber(category.official_count),
+        translated_percent: Number(clampPercent(toNumber(category.translated_percent)).toFixed(2)),
+        reviewed_percent: Number(clampPercent(toNumber(category.reviewed_percent)).toFixed(2)),
+        official_percent: Number(clampPercent(toNumber(category.official_percent)).toFixed(2)),
+        has_open_work: Boolean(category.has_open_work)
+      } satisfies PublicLanguageCategoryProgress;
+    })
+    .filter((item): item is PublicLanguageCategoryProgress => item !== null && item.slug.length > 0);
+}
+
 function parseTeamSections(value: Json): PublicLanguageTeamSection[] {
   if (!Array.isArray(value)) {
     return [];
@@ -208,6 +251,7 @@ function normalizePageRow(row: PublicLanguagePageRow): PublicLanguagePage {
     glossary_terms: toNumber(row.glossary_terms),
     glossary_proposals: toNumber(row.glossary_proposals),
     lead_member: parseMember(row.lead_member),
+    category_progress: parseCategoryProgress(row.category_progress),
     team_sections: parseTeamSections(row.team_sections),
     reviewers: parseMemberList(row.reviewers),
     team_members: parseMemberList(row.team_members),

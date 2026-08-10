@@ -1150,6 +1150,7 @@ export type Database = {
           active_translators: number;
           approved_suggestions: number;
           categories: Json;
+          category_progress: Json;
           code: string;
           collaborators_count: number;
           direction: string;
