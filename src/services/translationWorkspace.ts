@@ -135,6 +135,26 @@ function normalizeSlug(value: string) {
     .replace(/^-|-$/g, '');
 }
 
+function hashSeed(value: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function getPersonalizedRotation(viewerUserId: string | null | undefined, languageCode: string, categorySlug?: string | null, total = 0) {
+  if (!viewerUserId || total <= 0) {
+    return 0;
+  }
+
+  const seed = `${viewerUserId}:${languageCode}:${normalizeSlug(categorySlug ?? 'all')}`;
+  return hashSeed(seed) % total;
+}
+
 function getSeedLanguage(code: string): TranslationSeedLanguage | null {
   const normalizedCode = code.trim().toLowerCase();
 
@@ -305,7 +325,13 @@ function buildSeedItem(item: TranslationSeedString, targetLanguage: TranslationS
   };
 }
 
-function buildSeedSession(targetLanguageCode: string, categorySlug?: string | null, batchSize = 10, sessionOffset = 0): TranslationWorkspaceSession | null {
+function buildSeedSession(
+  targetLanguageCode: string,
+  categorySlug?: string | null,
+  batchSize = 10,
+  sessionOffset = 0,
+  viewerUserId?: string | null
+): TranslationWorkspaceSession | null {
   const targetLanguage = getSeedLanguage(targetLanguageCode);
 
   if (!targetLanguage) {
@@ -313,14 +339,18 @@ function buildSeedSession(targetLanguageCode: string, categorySlug?: string | nu
   }
 
   const filteredStrings = getSeedStrings(targetLanguage.code, categorySlug);
+  const rotation = getPersonalizedRotation(viewerUserId, targetLanguage.code, categorySlug, filteredStrings.length);
   const normalizedBatchSize = Math.max(1, Math.min(batchSize || 10, 20));
   const normalizedSessionOffset = Math.max(0, sessionOffset || 0);
-  const items = filteredStrings
+  const orderedStrings = filteredStrings.length > 0
+    ? [...filteredStrings.slice(rotation), ...filteredStrings.slice(0, rotation)]
+    : [];
+  const items = orderedStrings
     .slice(normalizedSessionOffset, normalizedSessionOffset + normalizedBatchSize)
     .map((item) => buildSeedItem(item, targetLanguage));
 
   return {
-    session_id: `seed:${targetLanguage.code}:${normalizeSlug(categorySlug ?? 'all')}:${normalizedSessionOffset}`,
+    session_id: `seed:${targetLanguage.code}:${normalizeSlug(categorySlug ?? 'all')}:${rotation}:${normalizedSessionOffset}`,
     target_language_id: `seed-${targetLanguage.code}`,
     target_language_code: targetLanguage.code,
     target_language_name: targetLanguage.name,
@@ -685,18 +715,21 @@ export async function fetchTranslationWorkspaceSession(params: {
   categorySlug?: string | null;
   batchSize?: number;
   sessionOffset?: number;
+  viewerUserId?: string | null;
 }): Promise<TranslationWorkspaceSession | null> {
   const normalizedTargetLanguageCode = params.targetLanguageCode ?? '';
   const normalizedCategorySlug = params.categorySlug ?? null;
   const batchSize = params.batchSize ?? 10;
   const sessionOffset = params.sessionOffset ?? 0;
+  const viewerUserId = params.viewerUserId ?? null;
 
   if (supabase) {
     const { data, error } = await supabase.rpc('translation_workspace_session', {
       target_language_code: normalizedTargetLanguageCode || null,
       category_slug: normalizedCategorySlug,
       batch_size: batchSize,
-      session_offset: sessionOffset
+      session_offset: sessionOffset,
+      viewer_user_id: viewerUserId
     });
 
     if (!error) {
@@ -713,7 +746,7 @@ export async function fetchTranslationWorkspaceSession(params: {
     }
   }
 
-  return buildSeedSession(normalizedTargetLanguageCode, normalizedCategorySlug, batchSize, sessionOffset);
+  return buildSeedSession(normalizedTargetLanguageCode, normalizedCategorySlug, batchSize, sessionOffset, viewerUserId);
 }
 
 export async function findTranslationWorkspaceDuplicate(params: {

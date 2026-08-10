@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { PageShell } from '@/components/page/PageShell';
+import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
 import { paths } from '@/navigation/paths';
 import translationSeed from '@/data/translation-seed.json';
@@ -474,6 +475,7 @@ function saveCommunityPhraseProposals(proposals: CommunityPhraseProposal[]) {
 }
 
 export function TranslatePage() {
+  const { user } = useAuth();
   const { locale } = useLocale();
   const copy = copyByLocale[locale];
   const [searchParams] = useSearchParams();
@@ -533,7 +535,8 @@ export function TranslatePage() {
         targetLanguageCode: languageCode || null,
         categorySlug: categorySlug || null,
         batchSize: 10,
-        sessionOffset: offset
+        sessionOffset: offset,
+        viewerUserId: user?.id ?? null
       });
 
       setSession(result);
@@ -558,7 +561,7 @@ export function TranslatePage() {
   useEffect(() => {
     void loadSession(0, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [languageCode, categorySlug]);
+  }, [languageCode, categorySlug, user?.id]);
 
   useEffect(() => {
     if (!currentItem) {
