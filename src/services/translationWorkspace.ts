@@ -751,7 +751,14 @@ export async function fetchTranslationWorkspaceSession(params: {
       const row = Array.isArray(data) ? data[0] : null;
 
       if (row) {
-        const glossaryTerms = await fetchLanguageGlossary(row.target_language_code);
+        let glossaryTerms: TranslationWorkspaceGlossaryTerm[] = [];
+
+        try {
+          glossaryTerms = await fetchLanguageGlossary(row.target_language_code);
+        } catch {
+          glossaryTerms = [];
+        }
+
         const normalized = normalizeSessionRow(row, glossaryTerms);
 
         if (normalized.items.length > 0 || normalized.total_available > 0) {
