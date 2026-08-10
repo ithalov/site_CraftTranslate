@@ -5,7 +5,9 @@ import type { Database } from './database.types';
 export const supabaseConfig = {
   auth: {
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    // AuthCallbackPage owns the PKCE exchange. Handling it here too can
+    // consume the same one-time code twice when React mounts in StrictMode.
+    detectSessionInUrl: false,
     persistSession: true,
     flowType: 'pkce' as const
   },

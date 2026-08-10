@@ -10,6 +10,24 @@
       content="ChatTranslate Web: translation platform for Minecraft communities."
     />
     <title>ChatTranslate</title>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var pendingPath = params.get('p');
+
+        // GitHub Pages sends unknown SPA routes to 404.html. Restore the
+        // original callback URL before React and Supabase inspect it.
+        if (!pendingPath) {
+          return;
+        }
+
+        params.delete('p');
+        var separator = pendingPath.indexOf('?') === -1 ? '?' : '&';
+        var remainingQuery = params.toString();
+        var restoredPath = pendingPath + (remainingQuery ? separator + remainingQuery : '');
+        window.history.replaceState(null, '', restoredPath);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

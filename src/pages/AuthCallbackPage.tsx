@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { RouteLoadingScreen } from '@/components/layout/RouteLoadingScreen';
 import { useAuth } from '@/hooks/useAuth';
 import { paths } from '@/navigation/paths';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 
+const codeExchanges = new Map<string, Promise<string | null>>();
+
+function exchangeCodeOnce(code: string) {
+  const existingExchange = codeExchanges.get(code);
+  if (existingExchange) {
+    return existingExchange;
+  }
+
+  const exchange = supabase!.auth.exchangeCodeForSession(code).then(({ error }) => error?.message ?? null);
+  codeExchanges.set(code, exchange);
+  return exchange;
+}
+
 export function AuthCallbackPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
-  const [consumed, setConsumed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -19,14 +30,12 @@ export function AuthCallbackPage() {
     async function finalize() {
       if (!supabase || !isSupabaseConfigured) {
         setError('Supabase is not configured in this environment.');
-        setConsumed(true);
         return;
       }
 
       if (isAuthenticated) {
         if (active) {
           window.history.replaceState({}, document.title, window.location.pathname);
-          setConsumed(true);
           navigate(paths.profile, { replace: true });
         }
         return;
@@ -47,14 +56,12 @@ export function AuthCallbackPage() {
 
           if (data.session) {
             window.history.replaceState({}, document.title, currentUrl.pathname);
-            setConsumed(true);
             navigate(paths.profile, { replace: true });
             return;
           }
         }
 
         setError(authError);
-        setConsumed(true);
         return;
       }
 
@@ -63,18 +70,17 @@ export function AuthCallbackPage() {
 
         if (previouslyHandledCode === code) {
           window.history.replaceState({}, document.title, currentUrl.pathname);
-          setConsumed(true);
           navigate(paths.profile, { replace: true });
           return;
         }
 
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        const exchangeError = await exchangeCodeOnce(code);
         if (!active) {
           return;
         }
 
         if (exchangeError) {
-          if (exchangeError.message.includes('flow_state_already_used')) {
+          if (exchangeError.includes('flow_state_already_used')) {
             const { data } = await supabase.auth.getSession();
 
             if (!active) {
@@ -84,14 +90,12 @@ export function AuthCallbackPage() {
             if (data.session) {
               window.sessionStorage.setItem(handledCodeKey, code);
               window.history.replaceState({}, document.title, currentUrl.pathname);
-              setConsumed(true);
               navigate(paths.profile, { replace: true });
               return;
             }
           }
 
-          setError(exchangeError.message);
-          setConsumed(true);
+          setError(exchangeError);
           return;
         }
 
@@ -100,7 +104,6 @@ export function AuthCallbackPage() {
       }
 
       if (active) {
-        setConsumed(true);
         navigate(paths.profile, { replace: true });
       }
     }
@@ -111,10 +114,6 @@ export function AuthCallbackPage() {
       active = false;
     };
   }, [isAuthenticated, navigate]);
-
-  if (isAuthenticated && consumed && !error) {
-    return <Navigate to={paths.profile} replace state={{ from: location }} />;
-  }
 
   if (error) {
     return (
