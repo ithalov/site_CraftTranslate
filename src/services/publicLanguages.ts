@@ -28,6 +28,12 @@ export type PublicLanguageCategory = {
   hint: string;
 };
 
+export type PublicLanguageTeamSection = {
+  role: string;
+  count: number;
+  members: PublicLanguageMember[];
+};
+
 export type PublicLanguagePage = {
   language_id: string;
   code: string;
@@ -52,6 +58,7 @@ export type PublicLanguagePage = {
   glossary_terms: number;
   glossary_proposals: number;
   lead_member: PublicLanguageMember | null;
+  team_sections: PublicLanguageTeamSection[];
   reviewers: PublicLanguageMember[];
   team_members: PublicLanguageMember[];
   top_contributors: PublicLanguageMember[];
@@ -132,6 +139,28 @@ function parseCategories(value: Json): PublicLanguageCategory[] {
     .filter((item): item is PublicLanguageCategory => item !== null && item.slug.length > 0);
 }
 
+function parseTeamSections(value: Json): PublicLanguageTeamSection[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return null;
+      }
+
+      const section = item as Record<string, Json | undefined>;
+
+      return {
+        role: String(section.role ?? 'member'),
+        count: toNumber(section.count),
+        members: parseMemberList(section.members ?? null)
+      } satisfies PublicLanguageTeamSection;
+    })
+    .filter((item): item is PublicLanguageTeamSection => item !== null && item.role.length > 0);
+}
+
 function normalizeCatalogRow(row: PublicLanguageCatalogRow): PublicLanguageCatalogItem {
   return {
     ...row,
@@ -179,6 +208,7 @@ function normalizePageRow(row: PublicLanguagePageRow): PublicLanguagePage {
     glossary_terms: toNumber(row.glossary_terms),
     glossary_proposals: toNumber(row.glossary_proposals),
     lead_member: parseMember(row.lead_member),
+    team_sections: parseTeamSections(row.team_sections),
     reviewers: parseMemberList(row.reviewers),
     team_members: parseMemberList(row.team_members),
     top_contributors: parseMemberList(row.top_contributors),

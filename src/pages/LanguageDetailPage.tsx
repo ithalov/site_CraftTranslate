@@ -13,8 +13,11 @@ import {
   fetchPublicLanguagePage,
   type PublicLanguageCategory,
   type PublicLanguageMember,
-  type PublicLanguagePage as PublicLanguageData
+  type PublicLanguagePage as PublicLanguageData,
+  type PublicLanguageTeamSection
 } from '@/services/publicLanguages';
+
+type RoleKey = 'translator' | 'trusted_translator' | 'reviewer' | 'language_moderator';
 
 type DetailCopy = {
   eyebrow: string;
@@ -22,6 +25,7 @@ type DetailCopy = {
   publicOnly: string;
   team: string;
   lead: string;
+  roster: string;
   reviewers: string;
   contributors: string;
   categories: string;
@@ -36,7 +40,22 @@ type DetailCopy = {
   noContributors: string;
   noTeam: string;
   noCategories: string;
+  noSections: string;
+  teamHint: string;
+  publicTeamHint: string;
+  publicSummary: string;
+  roleLabels: Record<RoleKey, string>;
+  roleDescriptions: Record<RoleKey, string>;
   error: string;
+};
+
+const roleOrder: RoleKey[] = ['translator', 'trusted_translator', 'reviewer', 'language_moderator'];
+
+const roleToneMap: Record<RoleKey, 'accent' | 'success' | 'warning' | 'danger'> = {
+  translator: 'accent',
+  trusted_translator: 'success',
+  reviewer: 'warning',
+  language_moderator: 'danger'
 };
 
 const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
@@ -44,8 +63,9 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     eyebrow: 'Idioma',
     back: 'Voltar para idiomas',
     publicOnly: 'Somente dados publicos',
-    team: 'Equipe',
+    team: 'Equipe publica',
     lead: 'Language Lead',
+    roster: 'Lista publica',
     reviewers: 'Reviewers',
     contributors: 'Principais contribuidores',
     categories: 'Categorias',
@@ -56,18 +76,35 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     collaborators: 'Colaboradores',
     officialLabel: 'Oficial',
     noLead: 'Ainda nao ha um lead publico para este idioma.',
-    noReviewers: 'Nenhum revisor publico encontrado.',
+    noReviewers: 'Nenhum reviewer publico encontrado.',
     noContributors: 'Nenhum contribuidor publico encontrado.',
     noTeam: 'Nenhuma equipe publica encontrada.',
     noCategories: 'Nenhuma categoria disponivel.',
+    noSections: 'Nenhum bloco de equipe disponivel.',
+    teamHint: 'Papéis publicos do idioma, organizados por funcao e visiveis para a comunidade.',
+    publicTeamHint: 'Acoes administrativas continuam protegidas; aqui aparecem apenas membros e funcoes publicas.',
+    publicSummary: 'Esta pagina mostra progresso agregado, equipe publica e contribuicoes por funcao sem expor strings.',
+    roleLabels: {
+      translator: 'Tradutores',
+      trusted_translator: 'Tradutores confiaveis',
+      reviewer: 'Reviewers',
+      language_moderator: 'Moderadores do idioma'
+    },
+    roleDescriptions: {
+      translator: 'Membros focados em enviar novas sugestoes e manter a base de traducao ativa.',
+      trusted_translator: 'Colaboradores com confianca maior para entregar sugestoes mais maduras.',
+      reviewer: 'Membros responsaveis por revisar qualidade, contexto e consistencia.',
+      language_moderator: 'Equipe que organiza o idioma e protege o padrao publico da comunidade.'
+    },
     error: 'Nao foi possivel carregar este idioma.'
   },
   en: {
     eyebrow: 'Language',
     back: 'Back to languages',
     publicOnly: 'Public data only',
-    team: 'Team',
+    team: 'Public team',
     lead: 'Language Lead',
+    roster: 'Public roster',
     reviewers: 'Reviewers',
     contributors: 'Top contributors',
     categories: 'Categories',
@@ -82,14 +119,31 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     noContributors: 'No public contributors were found.',
     noTeam: 'No public team members were found.',
     noCategories: 'No categories available.',
+    noSections: 'No team sections available.',
+    teamHint: 'Public language roles, organized by function and visible to the community.',
+    publicTeamHint: 'Administrative actions stay protected; only public members and roles are shown here.',
+    publicSummary: 'This page shows aggregate progress, the public team, and role-based contributions without exposing strings.',
+    roleLabels: {
+      translator: 'Translators',
+      trusted_translator: 'Trusted translators',
+      reviewer: 'Reviewers',
+      language_moderator: 'Language moderators'
+    },
+    roleDescriptions: {
+      translator: 'Members focused on sending fresh suggestions and keeping translation work moving.',
+      trusted_translator: 'People with higher trust to submit more mature translation work.',
+      reviewer: 'Members responsible for checking quality, context, and consistency.',
+      language_moderator: 'The group that organizes the language and protects the public standard.'
+    },
     error: 'Unable to load this language.'
   },
   es: {
     eyebrow: 'Idioma',
     back: 'Volver a idiomas',
     publicOnly: 'Solo datos publicos',
-    team: 'Equipo',
+    team: 'Equipo publico',
     lead: 'Language Lead',
+    roster: 'Lista publica',
     reviewers: 'Reviewers',
     contributors: 'Principales contribuidores',
     categories: 'Categorias',
@@ -104,6 +158,22 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', DetailCopy> = {
     noContributors: 'No se encontraron contribuidores publicos.',
     noTeam: 'No se encontraron miembros publicos del equipo.',
     noCategories: 'No hay categorias disponibles.',
+    noSections: 'No hay bloques de equipo disponibles.',
+    teamHint: 'Roles publicos del idioma, organizados por funcion y visibles para la comunidad.',
+    publicTeamHint: 'Las acciones administrativas siguen protegidas; aqui solo aparecen miembros y roles publicos.',
+    publicSummary: 'Esta pagina muestra progreso agregado, equipo publico y contribuciones por rol sin exponer strings.',
+    roleLabels: {
+      translator: 'Traductores',
+      trusted_translator: 'Traductores confiables',
+      reviewer: 'Reviewers',
+      language_moderator: 'Moderadores del idioma'
+    },
+    roleDescriptions: {
+      translator: 'Miembros enfocados en enviar nuevas sugerencias y mantener el flujo de traduccion activo.',
+      trusted_translator: 'Colaboradores con mas confianza para enviar traducciones mas maduras.',
+      reviewer: 'Miembros responsables de revisar calidad, contexto y consistencia.',
+      language_moderator: 'Equipo que organiza el idioma y protege el estandar publico.'
+    },
     error: 'No se pudo cargar este idioma.'
   }
 };
@@ -120,15 +190,33 @@ function memberHandle(member: PublicLanguageMember) {
   return buildPublicProfileHandle(member.username, member.display_name, member.user_id);
 }
 
-function MemberCard({
+function roleTone(role: string): 'accent' | 'success' | 'warning' | 'danger' {
+  return roleToneMap[roleKey(role)];
+}
+
+function roleKey(role: string): RoleKey {
+  if (role === 'translator' || role === 'trusted_translator' || role === 'reviewer' || role === 'language_moderator') {
+    return role;
+  }
+
+  return 'translator';
+}
+
+function teamSectionLabel(section: PublicLanguageTeamSection, copy: DetailCopy) {
+  return copy.roleLabels[roleKey(section.role)];
+}
+
+function TeamMemberCard({
   member,
   tone,
   locale,
+  roleLabel,
   compact = false
 }: {
   member: PublicLanguageMember;
-  tone: 'accent' | 'success' | 'warning' | 'neutral';
+  tone: 'accent' | 'success' | 'warning' | 'danger' | 'neutral';
   locale: 'pt-BR' | 'en' | 'es';
+  roleLabel: string;
   compact?: boolean;
 }) {
   const profilePath = paths.publicProfile.replace(':handle', encodeURIComponent(memberHandle(member)));
@@ -150,19 +238,13 @@ function MemberCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate font-[var(--font-display)] text-base font-bold text-[#101114]">
-              {memberName(member)}
-            </h3>
-            <Badge tone={tone}>{member.role}</Badge>
+            <h3 className="truncate font-[var(--font-display)] text-base font-bold text-[#101114]">{memberName(member)}</h3>
+            <Badge tone={tone}>{roleLabel}</Badge>
           </div>
           <p className="mt-1 text-sm text-[#566172]">@{memberHandle(member)}</p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#566172]">
-            <span className="rounded-full border border-[#dfe3ea] bg-[#f7f8fb] px-2 py-1">
-              {formatter.format(member.contribution_score)} CP
-            </span>
-            <span className="rounded-full border border-[#dfe3ea] bg-[#f7f8fb] px-2 py-1">
-              {member.proficiency}
-            </span>
+            <span className="rounded-full border border-[#dfe3ea] bg-[#f7f8fb] px-2 py-1">{formatter.format(member.contribution_score)} CP</span>
+            <span className="rounded-full border border-[#dfe3ea] bg-[#f7f8fb] px-2 py-1">{member.proficiency}</span>
             {member.is_primary ? <span className="rounded-full border border-[#dfe3ea] bg-[#f7f8fb] px-2 py-1">Primary</span> : null}
             {member.is_native ? <span className="rounded-full border border-[#dfe3ea] bg-[#f7f8fb] px-2 py-1">Native</span> : null}
           </div>
@@ -170,6 +252,61 @@ function MemberCard({
         </div>
       </div>
     </Link>
+  );
+}
+
+function TeamSectionCard({
+  section,
+  copy,
+  locale
+}: {
+  section: PublicLanguageTeamSection;
+  copy: DetailCopy;
+  locale: 'pt-BR' | 'en' | 'es';
+}) {
+  const visibleMembers = section.members.slice(0, 6);
+  const remaining = Math.max(0, section.members.length - visibleMembers.length);
+  const sectionKey = roleKey(section.role);
+  const tone = roleTone(section.role);
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="pixel-label text-[10px] text-[#566172]">{teamSectionLabel(section, copy)}</p>
+          <h3 className="mt-2 text-2xl font-bold text-[#101114]">{copy.roleLabels[sectionKey]}</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-[#566172]">{copy.roleDescriptions[sectionKey]}</p>
+        </div>
+        <Badge tone={tone}>
+          {new Intl.NumberFormat(getLocaleTag(locale)).format(section.count)}
+        </Badge>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {visibleMembers.length > 0 ? (
+          visibleMembers.map((member) => (
+            <TeamMemberCard
+              key={member.user_id}
+              member={member}
+              tone={tone}
+              locale={locale}
+              roleLabel={copy.roleLabels[roleKey(member.role)]}
+              compact
+            />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
+            {copy.noTeam}
+          </div>
+        )}
+      </div>
+
+      {remaining > 0 ? (
+        <p className="mt-4 text-xs uppercase tracking-[0.24em] text-[#566172]">
+          +{remaining} {locale === 'pt-BR' ? 'membros publicos' : locale === 'es' ? 'miembros publicos' : 'public members'}
+        </p>
+      ) : null}
+    </Card>
   );
 }
 
@@ -239,6 +376,14 @@ export function LanguageDetailPage() {
       { label: 'Reviewed', value: language.reviewed_percent, color: '#4cc9f0' },
       { label: 'Official', value: language.official_percent, color: '#ffb86b' }
     ];
+  }, [language]);
+
+  const orderedTeamSections = useMemo(() => {
+    if (!language) {
+      return [];
+    }
+
+    return [...language.team_sections].sort((left, right) => roleOrder.indexOf(roleKey(left.role)) - roleOrder.indexOf(roleKey(right.role)));
   }, [language]);
 
   if (loading) {
@@ -313,13 +458,7 @@ export function LanguageDetailPage() {
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
             <div className="rounded-2xl border-2 border-[#101114] bg-white p-5">
               <p className="text-sm font-bold text-[#101114]">{copy.publicOnly}</p>
-              <p className="mt-2 text-sm leading-7 text-[#566172]">
-                {locale === 'pt-BR'
-                  ? 'Esta pagina mostra progresso agregado, equipe e rankings internos do idioma, sem nenhum texto de string.'
-                  : locale === 'es'
-                    ? 'Esta pagina muestra progreso agregado, equipo y rankings internos del idioma, sin texto de strings.'
-                    : 'This page shows aggregate progress, team, and internal rankings for the language, without any string text.'}
-              </p>
+              <p className="mt-2 text-sm leading-7 text-[#566172]">{copy.publicSummary}</p>
             </div>
             <div className="rounded-2xl border-2 border-[#101114] bg-white p-5">
               <p className="text-sm font-bold text-[#101114]">{copy.progress}</p>
@@ -342,64 +481,45 @@ export function LanguageDetailPage() {
           </div>
         </Card>
 
-        <div className="grid gap-6 xl:grid-cols-[1.08fr_.92fr]">
-          <Card className="p-5 md:p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="pixel-label text-[10px] text-[#566172]">{copy.team}</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#101114]">{copy.lead}</h2>
+        <Card className="p-5 md:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="pixel-label text-[10px] text-[#566172]">{copy.team}</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#101114]">{copy.teamHint}</h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-7 text-[#566172]">{copy.publicTeamHint}</p>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1.05fr_.95fr]">
+            <div className="rounded-3xl border-2 border-[#101114] bg-white p-5 shadow-[6px_6px_0_#c7f464]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="pixel-label text-[10px] text-[#566172]">{copy.lead}</p>
+                  <h3 className="mt-2 text-xl font-bold text-[#101114]">
+                    {locale === 'pt-BR' ? 'Lider publico do idioma' : locale === 'es' ? 'Lider publico del idioma' : 'Public language lead'}
+                  </h3>
+                </div>
+                <Badge tone="accent">{formatter.format(language.collaborators_count)}</Badge>
               </div>
-              <Link to={paths.languages} className="font-[var(--font-display)] text-sm font-bold text-[#5652ff]">
-                {copy.back}
-              </Link>
-            </div>
 
-            <div className="mt-5 grid gap-4">
-              {language.lead_member ? (
-                <MemberCard member={language.lead_member} tone="accent" locale={locale} />
-              ) : (
-                <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
-                  {copy.noLead}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 grid gap-4">
-              <p className="pixel-label text-[10px] text-[#566172]">{copy.reviewers}</p>
-              {language.reviewers.length > 0 ? (
-                language.reviewers.map((member) => (
-                  <MemberCard key={member.user_id} member={member} tone="success" locale={locale} compact />
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
-                  {copy.noReviewers}
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card className="p-5 md:p-6">
-            <p className="pixel-label text-[10px] text-[#566172]">{copy.contributors}</p>
-            <div className="mt-4 grid gap-4">
-              {language.top_contributors.length > 0 ? (
-                language.top_contributors.map((member, index) => (
-                  <MemberCard
-                    key={member.user_id}
-                    member={member}
-                    tone={index === 0 ? 'accent' : index === 1 ? 'success' : index === 2 ? 'warning' : 'neutral'}
+              <div className="mt-5">
+                {language.lead_member ? (
+                  <TeamMemberCard
+                    member={language.lead_member}
+                    tone={roleTone(language.lead_member.role)}
                     locale={locale}
-                    compact
+                    roleLabel={copy.roleLabels[roleKey(language.lead_member.role)]}
                   />
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
-                  {copy.noContributors}
-                </div>
-              )}
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
+                    {copy.noLead}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mt-8 rounded-2xl border-2 border-[#101114] bg-[#101114] p-5 text-white">
-              <p className="pixel-label text-[10px] text-[#c7f464]">{copy.summary}</p>
+            <div className="rounded-3xl border-2 border-[#101114] bg-[#101114] p-5 text-white">
+              <p className="pixel-label text-[10px] text-[#c7f464]">{copy.roster}</p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3.5">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">{copy.translators}</p>
@@ -419,23 +539,82 @@ export function LanguageDetailPage() {
                 </div>
               </div>
             </div>
-          </Card>
-        </div>
-
-        <Card className="p-5 md:p-6">
-          <p className="pixel-label text-[10px] text-[#566172]">{copy.team}</p>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {language.team_members.length > 0 ? (
-              language.team_members.map((member) => (
-                <MemberCard key={member.user_id} member={member} tone="neutral" locale={locale} compact />
-              ))
-            ) : (
-              <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
-                {copy.noTeam}
-              </div>
-            )}
           </div>
         </Card>
+
+        <div className="grid gap-4">
+          <div className="rounded-3xl border-2 border-[#101114] bg-white p-5 md:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="pixel-label text-[10px] text-[#566172]">{copy.team}</p>
+                <h2 className="mt-2 text-2xl font-bold text-[#101114]">
+                  {locale === 'pt-BR' ? 'Blocos de funcao' : locale === 'es' ? 'Bloques por funcion' : 'Role blocks'}
+                </h2>
+              </div>
+              <Badge tone="neutral">
+                {formatter.format(language.team_sections.reduce((sum, section) => sum + section.count, 0))} {locale === 'pt-BR' ? 'membros' : locale === 'es' ? 'miembros' : 'members'}
+              </Badge>
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              {orderedTeamSections.length > 0 ? (
+                orderedTeamSections.map((section) => (
+                  <TeamSectionCard key={section.role} section={section} copy={copy} locale={locale} />
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
+                  {copy.noSections}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[1.08fr_.92fr]">
+            <Card className="p-5 md:p-6">
+              <p className="pixel-label text-[10px] text-[#566172]">{copy.contributors}</p>
+              <div className="mt-4 grid gap-4">
+                {language.top_contributors.length > 0 ? (
+                  language.top_contributors.map((member, index) => (
+                    <TeamMemberCard
+                      key={member.user_id}
+                      member={member}
+                      tone={index === 0 ? 'accent' : index === 1 ? 'success' : index === 2 ? 'warning' : 'neutral'}
+                      locale={locale}
+                      roleLabel={copy.roleLabels[roleKey(member.role)]}
+                      compact
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
+                    {copy.noContributors}
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-5 md:p-6">
+              <p className="pixel-label text-[10px] text-[#566172]">{copy.roster}</p>
+              <div className="mt-4 grid gap-4">
+                {language.team_members.length > 0 ? (
+                  language.team_members.map((member) => (
+                    <TeamMemberCard
+                      key={member.user_id}
+                      member={member}
+                      tone={roleTone(member.role)}
+                      locale={locale}
+                      roleLabel={copy.roleLabels[roleKey(member.role)]}
+                      compact
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[#dfe3ea] bg-[#f7f8fb] p-5 text-sm text-[#566172]">
+                    {copy.noTeam}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </PageShell>
   );

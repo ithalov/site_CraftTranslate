@@ -1165,6 +1165,7 @@ export type Database = {
           reviewers: Json;
           reviewed_count: number;
           reviewed_percent: number;
+          team_sections: Json;
           team_members: Json;
           top_contributors: Json;
           total_strings: number;
