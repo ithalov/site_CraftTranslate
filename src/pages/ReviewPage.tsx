@@ -1,22 +1,9 @@
-import { ProtectedFeaturePage } from '@/pages/ProtectedFeaturePage';
+import { WorkspaceModulePage } from '@/pages/WorkspaceModulePage';
 
 export function ReviewPage() {
-  return (
-    <ProtectedFeaturePage
-      eyebrow="Review"
-      title="Review queue"
-      description="Estrutura para auditoria humana, qualidade e consistência de tradução."
-      items={[
-        { title: 'Quality checks', description: 'Lista de validações para tom, terminologia e contexto.' },
-        { title: 'Comment threads', description: 'Espaço para feedback e histórico de decisões.' },
-        { title: 'Approval states', description: 'Base de aprovações, rejeições e pendências.' },
-        { title: 'Audit trail', description: 'Preparado para rastrear mudanças e responsáveis.' }
-      ]}
-      progress={[
-        { label: 'Pending', value: 44 },
-        { label: 'Approved', value: 67 },
-        { label: 'Needs edits', value: 22 }
-      ]}
-    />
-  );
+  return <WorkspaceModulePage content={{
+    'pt-BR': { eyebrow: 'Revisar', title: 'Fila de revisao', description: 'Revise traducoes com contexto, consistencia e historico de decisoes.', progressTitle: 'Fila de qualidade', items: [{ title: 'Verificacoes de qualidade', description: 'Tom, terminologia e contexto em uma lista objetiva.' }, { title: 'Comentarios', description: 'Feedback claro e historico de cada decisao.' }, { title: 'Estados de aprovacao', description: 'Aprovada, pendente ou precisa de ajustes.' }, { title: 'Historico', description: 'Rastreie mudancas e responsaveis com seguranca.' }], progress: [{ label: 'Pendentes', value: 44 }, { label: 'Aprovadas', value: 67 }, { label: 'Com ajustes', value: 22 }] },
+    en: { eyebrow: 'Review', title: 'Review queue', description: 'Review translations with context, consistency, and decision history.', progressTitle: 'Quality queue', items: [{ title: 'Quality checks', description: 'Tone, terminology, and context in an objective list.' }, { title: 'Comments', description: 'Clear feedback and history for every decision.' }, { title: 'Approval states', description: 'Approved, pending, or needs changes.' }, { title: 'History', description: 'Track changes and responsible members safely.' }], progress: [{ label: 'Pending', value: 44 }, { label: 'Approved', value: 67 }, { label: 'Needs changes', value: 22 }] },
+    es: { eyebrow: 'Revisar', title: 'Cola de revision', description: 'Revisa traducciones con contexto, consistencia e historial de decisiones.', progressTitle: 'Cola de calidad', items: [{ title: 'Verificaciones de calidad', description: 'Tono, terminologia y contexto en una lista objetiva.' }, { title: 'Comentarios', description: 'Comentarios claros e historial de cada decision.' }, { title: 'Estados de aprobacion', description: 'Aprobada, pendiente o necesita cambios.' }, { title: 'Historial', description: 'Rastrea cambios y responsables de forma segura.' }], progress: [{ label: 'Pendientes', value: 44 }, { label: 'Aprobadas', value: 67 }, { label: 'Con cambios', value: 22 }] }
+  }} />;
 }

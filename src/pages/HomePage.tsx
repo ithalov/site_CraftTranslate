@@ -1,420 +1,63 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { RouteLoadingScreen } from '@/components/layout/RouteLoadingScreen';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/hooks/useLocale';
 import { paths } from '@/navigation/paths';
 import { fetchHomePublicData, type HomePublicData } from '@/services/publicHome';
 
 const repoUrl = 'https://github.com/ithalov/site_CraftTranslate';
 
-const heroSignals = [
-  'Discord login',
-  'Community review',
-  'Public rankings',
-  'Minecraft-friendly'
-];
+function formatNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(locale).format(value);
+}
 
 function avatarInitial(name: string | null | undefined) {
   return (name ?? 'C').slice(0, 1).toUpperCase();
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat('en-US').format(value);
-}
+type PersonListProps = { title: string; subtitle: string; empty: string; items: HomePublicData['translators']; accent: 'accent' | 'success' | 'warning'; locale: string };
 
-function getStartPath(isAuthenticated: boolean) {
-  return isAuthenticated ? paths.dashboard : paths.login;
-}
-
-function getDiscordPath() {
-  return paths.login;
-}
-
-function PersonList({
-  title,
-  subtitle,
-  items,
-  accent
-}: {
-  title: string;
-  subtitle: string;
-  items: HomePublicData['translators'];
-  accent: 'accent' | 'success' | 'warning';
-}) {
-  return (
-    <Card className="p-6 md:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="pixel-label text-[10px] text-[#566172]">{title}</p>
-          <h3 className="mt-2 text-2xl font-bold text-[#101114]">{subtitle}</h3>
-        </div>
-        <Badge tone={accent}>Top 4</Badge>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {items.length > 0 ? (
-          items.map((item, index) => (
-            <div key={item.user_id} className="flex items-center gap-4 rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-3">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-[#101114] bg-[#101114] text-sm font-bold text-white">
-                {item.avatar_url ? (
-                  <img src={item.avatar_url} alt={item.display_name ?? item.username ?? 'user'} className="h-full w-full object-cover" />
-                ) : (
-                  <span>{avatarInitial(item.display_name ?? item.username)}</span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-[#101114]">
-                  {index + 1}. {item.display_name ?? item.username ?? 'Unnamed player'}
-                </p>
-                <p className="text-xs text-[#566172]">
-                  {formatNumber(item.total_xp)} XP · {formatNumber(item.reputation_score)} rep · #{item.rank}
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-[#566172]">No public entries yet.</p>
-        )}
-      </div>
-    </Card>
-  );
+function PersonList({ title, subtitle, empty, items, accent, locale }: PersonListProps) {
+  return <Card className="p-6 md:p-7"><div className="flex items-start justify-between gap-4"><div><p className="pixel-label text-[10px] text-[#566172]">{title}</p><h3 className="mt-2 text-xl font-extrabold text-[#101114]">{subtitle}</h3></div><Badge tone={accent}>TOP 4</Badge></div><div className="mt-5 space-y-2.5">{items.length > 0 ? items.map((item, index) => <div key={item.user_id} className="flex items-center gap-3 rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-3 transition hover:bg-white hover:shadow-[3px_3px_0_#101114]"><div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border-2 border-[#101114] bg-[#101114] text-sm font-bold text-white">{item.avatar_url ? <img src={item.avatar_url} alt={item.display_name ?? item.username ?? 'user'} className="h-full w-full object-cover" /> : <span>{avatarInitial(item.display_name ?? item.username)}</span>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[#101114]">{index + 1}. {item.display_name ?? item.username ?? 'Player'}</p><p className="mt-0.5 text-xs text-[#566172]">{formatNumber(item.total_xp, locale)} XP · {formatNumber(item.reputation_score, locale)} CP</p></div></div>) : <p className="rounded-xl bg-[#f7f8fb] p-4 text-sm text-[#566172]">{empty}</p>}</div></Card>;
 }
 
 export function HomePage() {
   const { isAuthenticated } = useAuth();
+  const { locale } = useLocale();
   const [data, setData] = useState<HomePublicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await fetchHomePublicData();
-
-        if (!active) {
-          return;
-        }
-
-        setData(result);
-      } catch (loadError) {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load public data.');
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+  const copy = {
+    'pt-BR': {
+      signals: ['Discord conectado', 'Revisao comunitaria', 'Dados protegidos'], eyebrow: 'Traducao para comunidades Minecraft', hero: <>Toda conversa.<br /><span className="text-[#c7f464]">No idioma certo.</span></>, lead: 'Uma plataforma comunitaria para traduzir, revisar e manter o chat do seu servidor acessivel a todos os jogadores.', start: 'Comecar a traduzir', github: 'Ver no GitHub', discord: 'Entrar com Discord',
+      metrics: [['Colaboradores', 'membros ativos'], ['Idiomas', 'comunidades atendidas'], ['Traducoes', 'contribuicoes publicas'], ['Revisoes', 'checagens de qualidade']], goal: 'Meta da comunidade', goalTitle: 'Rumo a 500 sugestoes aprovadas', goalProgress: 'Progresso da meta', approved: 'Sugestoes aprovadas', average: 'Progresso medio', explanation: 'Cada sugestao revisada aproxima o servidor de uma experiencia melhor para todos, sem expor mensagens privadas.',
+      flowLabel: 'Como funciona', flowTitle: <>Um fluxo simples.<br /><span className="text-[#5652ff]">Uma comunidade mais inclusiva.</span></>, flowLead: 'Escolha os idiomas que voce domina, envie sugestoes com contexto e ajude revisores a manter a qualidade.', steps: [['01', 'Conecte', 'Entre com Discord e monte seu perfil de idiomas.'], ['02', 'Traduza', 'Crie sugestoes claras para a comunidade.'], ['03', 'Revise', 'Ajude a aprovar as melhores versoes.']], languages: 'Idiomas em destaque', languagesTitle: 'Progresso que a comunidade pode acompanhar', languagesLead: 'Mostramos somente metricas publicas e seguras. O conteudo das traducoes permanece protegido.', progress: 'Progresso', approvedShort: 'aprovadas', translators: 'tradutores', emptyLanguages: 'Os idiomas aparecerao aqui assim que estiverem ativos.', finalLabel: 'Seu proximo bloco', finalTitle: <>Pronto para deixar<br />mais jogadores incluidos?</>, finalLead: 'Junte-se ao fluxo de traducao e ajude sua comunidade a falar a mesma lingua.', profileHint: 'Entre com Discord, selecione seus idiomas e acompanhe sua evolucao no perfil.', empty: 'Ainda nao ha contribuicoes publicas.'
+    },
+    en: {
+      signals: ['Discord connected', 'Community review', 'Protected data'], eyebrow: 'Translation for Minecraft communities', hero: <>Every conversation.<br /><span className="text-[#c7f464]">In the right language.</span></>, lead: 'A community platform to translate, review, and keep your server chat accessible to every player.', start: 'Start translating', github: 'View on GitHub', discord: 'Join with Discord', metrics: [['Contributors', 'active members'], ['Languages', 'communities served'], ['Translations', 'public contributions'], ['Reviews', 'quality checks']], goal: 'Community goal', goalTitle: 'On the way to 500 approved suggestions', goalProgress: 'Goal progress', approved: 'Approved suggestions', average: 'Average progress', explanation: 'Every reviewed suggestion brings the server closer to a better experience for everyone, without exposing private messages.', flowLabel: 'How it works', flowTitle: <>A simple flow.<br /><span className="text-[#5652ff]">A more inclusive community.</span></>, flowLead: 'Choose the languages you know, send context-aware suggestions, and help reviewers protect quality.', steps: [['01', 'Connect', 'Sign in with Discord and build your language profile.'], ['02', 'Translate', 'Create clear suggestions for the community.'], ['03', 'Review', 'Help approve the best versions.']], languages: 'Featured languages', languagesTitle: 'Progress the community can follow', languagesLead: 'We only show safe, public metrics. Translation content remains protected.', progress: 'Progress', approvedShort: 'approved', translators: 'translators', emptyLanguages: 'Languages will appear here when they become active.', finalLabel: 'Your next block', finalTitle: <>Ready to include<br />more players?</>, finalLead: 'Join the translation flow and help your community speak the same language.', profileHint: 'Sign in with Discord, choose your languages, and follow your progress in your profile.', empty: 'There are no public contributions yet.'
+    },
+    es: {
+      signals: ['Discord conectado', 'Revision comunitaria', 'Datos protegidos'], eyebrow: 'Traduccion para comunidades Minecraft', hero: <>Cada conversacion.<br /><span className="text-[#c7f464]">En el idioma correcto.</span></>, lead: 'Una plataforma comunitaria para traducir, revisar y mantener el chat de tu servidor accesible para todos.', start: 'Comenzar a traducir', github: 'Ver en GitHub', discord: 'Entrar con Discord', metrics: [['Colaboradores', 'miembros activos'], ['Idiomas', 'comunidades atendidas'], ['Traducciones', 'contribuciones publicas'], ['Revisiones', 'controles de calidad']], goal: 'Meta de la comunidad', goalTitle: 'Camino a 500 sugerencias aprobadas', goalProgress: 'Progreso de la meta', approved: 'Sugerencias aprobadas', average: 'Progreso medio', explanation: 'Cada sugerencia revisada acerca al servidor a una mejor experiencia para todos, sin exponer mensajes privados.', flowLabel: 'Como funciona', flowTitle: <>Un flujo simple.<br /><span className="text-[#5652ff]">Una comunidad mas inclusiva.</span></>, flowLead: 'Elige los idiomas que dominas, envia sugerencias con contexto y ayuda a proteger la calidad.', steps: [['01', 'Conecta', 'Entra con Discord y crea tu perfil de idiomas.'], ['02', 'Traduce', 'Crea sugerencias claras para la comunidad.'], ['03', 'Revisa', 'Ayuda a aprobar las mejores versiones.']], languages: 'Idiomas destacados', languagesTitle: 'Progreso que la comunidad puede seguir', languagesLead: 'Solo mostramos metricas publicas y seguras. El contenido queda protegido.', progress: 'Progreso', approvedShort: 'aprobadas', translators: 'traductores', emptyLanguages: 'Los idiomas apareceran aqui cuando esten activos.', finalLabel: 'Tu proximo bloque', finalTitle: <>Listo para incluir<br />mas jugadores?</>, finalLead: 'Unete al flujo de traduccion y ayuda a tu comunidad a hablar el mismo idioma.', profileHint: 'Entra con Discord, elige tus idiomas y sigue tu progreso en el perfil.', empty: 'Todavia no hay contribuciones publicas.'
     }
+  }[locale];
 
-    void load();
+  useEffect(() => { let active = true; void fetchHomePublicData().then((result) => { if (active) setData(result); }).catch((loadError: unknown) => { if (active) setError(loadError instanceof Error ? loadError.message : 'Unable to load public data.'); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
 
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const startPath = getStartPath(isAuthenticated);
-  const discordPath = getDiscordPath();
-  const communityGoalTarget = 500;
-  const approvedGoal = data?.stats.approvedSuggestions ?? 0;
-  const communityGoalProgress = Math.min(100, Math.round((approvedGoal / communityGoalTarget) * 100));
-
+  const stats = data?.stats ?? { contributors: 0, totalTranslations: 0, totalReviews: 0, totalBadges: 0, activeLanguages: 0, averageProgress: 0, approvedSuggestions: 0 };
   const featuredLanguages = useMemo(() => data?.languages.slice(0, 4) ?? [], [data]);
+  const approvedGoal = stats.approvedSuggestions;
+  const goalProgress = Math.min(100, Math.round((approvedGoal / 500) * 100));
+  const startPath = isAuthenticated ? paths.dashboard : paths.login;
+  const values = [stats.contributors, stats.activeLanguages, stats.totalTranslations, stats.totalReviews];
 
-  if (loading) {
-    return <RouteLoadingScreen />;
-  }
+  if (loading) return <RouteLoadingScreen />;
+  if (error) return <section className="grid min-h-[60vh] place-items-center"><Card className="max-w-lg p-8 text-center"><p className="pixel-label text-[10px] text-[#566172]">ChatTranslate</p><h1 className="minecraft-title mt-3 text-3xl">Nao foi possivel carregar</h1><p className="mt-3 text-sm text-[#566172]">{error}</p></Card></section>;
 
-  if (error) {
-    return (
-      <section className="grid min-h-[70vh] place-items-center px-[var(--space-page)] py-10">
-        <Card className="w-full max-w-2xl p-8 text-center">
-          <p className="pixel-label text-[10px] text-[#566172]">Home</p>
-          <h1 className="minecraft-title mt-3 text-4xl text-[#101114]">Unable to load home</h1>
-          <p className="mt-4 text-sm leading-7 text-[#566172]">{error}</p>
-        </Card>
-      </section>
-    );
-  }
-
-  const stats = data?.stats ?? {
-    contributors: 0,
-    totalTranslations: 0,
-    totalReviews: 0,
-    totalBadges: 0,
-    activeLanguages: 0,
-    averageProgress: 0,
-    approvedSuggestions: 0
-  };
-
-  return (
-    <section className="pb-16">
-      <div className="mx-[calc(var(--space-page)*-1)] border-b-2 border-[#101114] bg-[#101114] text-white">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-[var(--space-page)] py-16 md:py-24 lg:grid-cols-[1.02fr_.98fr] lg:items-center">
-          <div className="animate-[block-rise_.7s_ease-out_both]">
-            <div className="flex flex-wrap gap-2">
-              {heroSignals.map((signal) => (
-                <StatusPill key={signal} tone="accent">
-                  {signal}
-                </StatusPill>
-              ))}
-            </div>
-
-            <p className="pixel-label mt-6 text-xs text-[#c7f464]">Minecraft community translation</p>
-            <h1 className="minecraft-title mt-4 max-w-3xl text-5xl leading-[.94] tracking-[-.06em] sm:text-6xl md:text-7xl">
-              One community.
-              <br />
-              <span className="text-[#c7f464]">Many languages.</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-white/70 md:text-lg">
-              ChatTranslate Web helps Minecraft communities translate chat, guide new players and keep every conversation clear without exposing private data.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to={startPath} className="block-button px-5 py-3 text-sm transition">
-                Start Translating <span aria-hidden="true">-&gt;</span>
-              </Link>
-              <a
-                href={repoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg border-2 border-white/80 px-5 py-3 font-[var(--font-display)] text-sm font-bold text-white transition hover:-translate-y-1 hover:bg-white hover:text-[#101114]"
-              >
-                GitHub
-              </a>
-              <Link
-                to={discordPath}
-                className="rounded-lg border-2 border-[#c7f464] bg-[#c7f464] px-5 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:bg-white"
-              >
-                Discord
-              </Link>
-            </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                ['Public contributors', formatNumber(stats.contributors), 'community members'],
-                ['Active languages', formatNumber(stats.activeLanguages), 'main language lanes'],
-                ['Translations', formatNumber(stats.totalTranslations), 'public activity'],
-                ['Reviews', formatNumber(stats.totalReviews), 'quality checks']
-              ].map(([label, value, hint]) => (
-                <div key={label as string} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">{label}</p>
-                  <p className="mt-2 text-2xl font-bold text-white">{value}</p>
-                  <p className="mt-1 text-xs text-white/60">{hint}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative animate-[block-rise_.7s_.14s_ease-out_both]">
-            <div className="absolute -inset-5 bg-[radial-gradient(circle_at_20%_15%,rgba(199,244,100,.25),transparent_38%),radial-gradient(circle_at_85%_75%,rgba(76,201,240,.2),transparent_35%)] blur-2xl" />
-            <div className="relative overflow-hidden rounded-lg border-2 border-white/90 bg-[#f7f8fb] text-[#101114] shadow-[9px_9px_0_#c7f464]">
-              <div className="flex items-center justify-between border-b-2 border-[#101114] px-5 py-4">
-                <div>
-                  <p className="pixel-label text-[10px] text-[#566172]">Community goal</p>
-                  <h2 className="mt-1 font-[var(--font-display)] text-lg font-bold">Build the next 500 approved suggestions</h2>
-                </div>
-                <Badge tone="success">{communityGoalProgress}%</Badge>
-              </div>
-              <div className="space-y-4 p-5">
-                <ProgressBar label="Goal progress" value={communityGoalProgress} tone="accent" />
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-[#dfe3ea] bg-white p-4">
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">Approved suggestions</p>
-                    <p className="mt-2 text-3xl font-bold text-[#101114]">{formatNumber(approvedGoal)}</p>
-                    <p className="mt-2 text-sm text-[#566172]">Public milestone tracked from language progress.</p>
-                  </div>
-                  <div className="rounded-xl border border-[#dfe3ea] bg-white p-4">
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">Average progress</p>
-                    <p className="mt-2 text-3xl font-bold text-[#101114]">{stats.averageProgress}%</p>
-                    <p className="mt-2 text-sm text-[#566172]">Across the main active languages.</p>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-[#dfe3ea] bg-white p-4">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-[#566172]">What this means</p>
-                  <p className="mt-2 text-sm leading-7 text-[#566172]">
-                    When the community keeps translating and reviewing, approved suggestions grow and language packs become more useful for every player.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-7xl px-[var(--space-page)]">
-        <div className="grid gap-4 py-10 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Active languages" value={formatNumber(stats.activeLanguages)} hint="public progress" />
-          <MetricCard label="Supporters" value={formatNumber(stats.totalBadges)} hint="earned badges" />
-          <MetricCard label="Approved suggestions" value={formatNumber(stats.approvedSuggestions)} hint="milestone count" />
-          <MetricCard label="Average progress" value={`${stats.averageProgress}%`} hint="all main languages" />
-        </div>
-
-        <div className="grid gap-12 border-t border-[#dfe3ea] py-16 lg:grid-cols-[1fr_1.05fr] lg:items-start">
-          <div>
-            <p className="pixel-label text-xs text-[#566172]">How community translation works</p>
-            <h2 className="minecraft-title mt-3 text-4xl leading-none text-[#101114] md:text-5xl">
-              A calm flow for
-              <br />
-              <span className="text-[#5652ff]">players, translators and reviewers.</span>
-            </h2>
-            <p className="mt-5 max-w-md leading-7 text-[#566172]">
-              ChatTranslate keeps the process lightweight: contributors choose their languages, translations are suggested in context, and reviewers approve the best version for the community.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <StatusPill tone="success">Open workflow</StatusPill>
-              <StatusPill tone="accent">Discord-powered</StatusPill>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              ['01', 'Capture', 'Messages and strings arrive with context intact.'],
-              ['02', 'Translate', 'Members create clear suggestions in the right language.'],
-              ['03', 'Review', 'Trusted reviewers approve what reaches the community.']
-            ].map(([number, title, copy], index) => (
-              <Card key={number} className="p-5 transition duration-200 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[10px_10px_0_#101114]">
-                <span
-                  className="font-[var(--font-display)] text-sm font-bold"
-                  style={{ color: ['#4cc9f0', '#5652ff', '#ff6b5f'][index] }}
-                >
-                  {number}
-                </span>
-                <h3 className="minecraft-title mt-8 text-2xl text-[#101114]">{title}</h3>
-                <p className="mt-3 text-sm leading-6 text-[#566172]">{copy}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-6 border-t border-[#dfe3ea] py-16 xl:grid-cols-3">
-          <Card className="p-6 md:p-7 xl:col-span-3">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="pixel-label text-[10px] text-[#566172]">Main languages</p>
-                <h2 className="minecraft-title mt-2 text-3xl text-[#101114]">Progress of the most active languages</h2>
-              </div>
-              <p className="max-w-xl text-sm leading-7 text-[#566172]">
-                These metrics are public and safe to show. They help the community see where translation effort is moving.
-              </p>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {featuredLanguages.map((language) => (
-                <div key={language.language_id} className="rounded-2xl border-2 border-[#101114] bg-white p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-[#101114]">
-                        {language.emoji ? `${language.emoji} ` : ''}
-                        {language.name}
-                      </p>
-                      <p className="mt-1 text-xs text-[#566172]">{language.native_name}</p>
-                    </div>
-                    <Badge tone="neutral">{language.code}</Badge>
-                  </div>
-                  <div className="mt-4">
-                    <ProgressBar label="Progress" value={Math.round(Number(language.progress_percent ?? 0))} tone="accent" />
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Badge tone="success">{formatNumber(Number(language.approved_suggestions ?? 0))} approved</Badge>
-                    <Badge tone="neutral">{formatNumber(Number(language.active_translators ?? 0))} translators</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <PersonList
-            title="Top translators"
-            subtitle="Most active translation contributors"
-            items={data?.translators ?? []}
-            accent="accent"
-          />
-          <PersonList
-            title="Top reviewers"
-            subtitle="Most active review contributors"
-            items={data?.reviewers ?? []}
-            accent="success"
-          />
-          <PersonList
-            title="Supporters"
-            subtitle="Badges and community support"
-            items={data?.supporters ?? []}
-            accent="warning"
-          />
-        </div>
-
-        <div className="grid gap-6 border-t border-[#dfe3ea] py-16 lg:grid-cols-[1fr_0.95fr]">
-          <Card className="p-6 md:p-8">
-            <p className="pixel-label text-[10px] text-[#566172]">Why it works</p>
-            <h2 className="minecraft-title mt-3 text-4xl leading-none text-[#101114] md:text-5xl">
-              Built for community
-              <br />
-              <span className="text-[#c7f464]">without losing clarity.</span>
-            </h2>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {[
-                ['Accessible flow', 'Every contributor sees the same public progress and simple entry points.'],
-                ['Quality first', 'Review and moderation keep language packs clean and useful.'],
-                ['No private leaks', 'Public pages only use safe views and derived metrics.'],
-                ['Future-ready', 'The layout is ready for more languages, badges and seasonal goals.']
-              ].map(([title, copy]) => (
-                <div key={title} className="rounded-xl border-2 border-[#101114] bg-white p-4">
-                  <p className="text-sm font-bold text-[#101114]">{title}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#566172]">{copy}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden p-0">
-            <div className="bg-[#101114] px-6 py-6 text-white md:px-8">
-              <p className="pixel-label text-[10px] text-[#c7f464]">Final CTA</p>
-              <h2 className="minecraft-title mt-3 text-4xl leading-none md:text-5xl">
-                Ready to start
-                <br />
-                contributing?
-              </h2>
-              <p className="mt-4 max-w-md text-sm leading-7 text-white/70">
-                Join the translation flow, pick your languages and help keep every Minecraft player included.
-              </p>
-            </div>
-            <div className="p-6 md:p-8">
-              <div className="flex flex-wrap gap-3">
-                <Link to={startPath} className="block-button px-5 py-3 text-sm transition">
-                  Start Translating
-                </Link>
-                <a
-                  href={repoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-lg border-2 border-[#101114] px-5 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:bg-[#101114] hover:text-white"
-                >
-                  GitHub
-                </a>
-                <Link
-                  to={discordPath}
-                  className="rounded-lg border-2 border-[#101114] bg-[#f7f8fb] px-5 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:bg-white"
-                >
-                  Discord
-                </Link>
-              </div>
-              <p className="mt-5 text-sm leading-7 text-[#566172]">
-                Want to see your own profile? Log in with Discord, choose your languages and join the contributor ranking.
-              </p>
-            </div>
-          </Card>
-        </div>
-      </div>
-    </section>
-  );
+  return <section className="pb-10"><div className="mx-[calc(var(--space-page)*-1)] overflow-hidden bg-[#101114] text-white"><div className="relative mx-auto grid w-full max-w-7xl gap-10 px-[var(--space-page)] py-16 md:py-24 lg:grid-cols-[1.04fr_.96fr] lg:items-center"><div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_8%,rgba(199,244,100,.17),transparent_23%),radial-gradient(circle_at_90%_25%,rgba(76,201,240,.18),transparent_27%)]" /><div className="relative animate-[block-rise_.7s_ease-out_both]"><div className="flex flex-wrap gap-2">{copy.signals.map((signal) => <StatusPill key={signal} tone="accent">{signal}</StatusPill>)}</div><p className="pixel-label mt-7 text-xs text-[#c7f464]">{copy.eyebrow}</p><h1 className="minecraft-title mt-4 max-w-3xl text-5xl leading-[.92] sm:text-6xl md:text-7xl">{copy.hero}</h1><p className="mt-6 max-w-xl text-base leading-8 text-white/72 md:text-lg">{copy.lead}</p><div className="mt-8 flex flex-wrap gap-3"><Link to={startPath} className="block-button px-5 py-3 text-sm">{copy.start} <span aria-hidden="true">-&gt;</span></Link><a href={repoUrl} target="_blank" rel="noreferrer" className="block-button-secondary px-5 py-3 text-sm">{copy.github}</a><Link to={paths.login} className="rounded-xl border-2 border-[#c7f464] px-5 py-3 font-[var(--font-display)] text-sm font-bold text-[#c7f464] transition hover:-translate-y-1 hover:bg-[#c7f464] hover:text-[#101114]">{copy.discord}</Link></div><div className="mt-9 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{copy.metrics.map(([label, hint], index) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[.06] p-4 backdrop-blur-sm"><p className="text-[10px] uppercase tracking-[.22em] text-white/50">{label}</p><p className="mt-2 text-2xl font-extrabold text-white">{formatNumber(values[index], locale)}</p><p className="mt-1 text-xs text-white/60">{hint}</p></div>)}</div></div><div className="relative animate-[block-rise_.7s_.14s_ease-out_both]"><div className="absolute -inset-6 rounded-full bg-[#c7f464]/15 blur-3xl" /><Card className="relative overflow-hidden border-white/80 p-0 text-[#101114] shadow-[9px_9px_0_#c7f464]"><div className="border-b-2 border-[#101114] bg-white px-5 py-4"><div className="flex items-center justify-between gap-4"><div><p className="pixel-label text-[10px] text-[#566172]">{copy.goal}</p><h2 className="mt-1 text-lg font-extrabold">{copy.goalTitle}</h2></div><Badge tone="success">{goalProgress}%</Badge></div></div><div className="space-y-4 bg-[#f7f8fb] p-5"><ProgressBar label={copy.goalProgress} value={goalProgress} tone="accent" /><div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-[#dfe3ea] bg-white p-4"><p className="text-[10px] uppercase tracking-[.2em] text-[#566172]">{copy.approved}</p><p className="mt-2 text-3xl font-extrabold">{formatNumber(approvedGoal, locale)}</p></div><div className="rounded-xl border border-[#dfe3ea] bg-white p-4"><p className="text-[10px] uppercase tracking-[.2em] text-[#566172]">{copy.average}</p><p className="mt-2 text-3xl font-extrabold">{stats.averageProgress}%</p></div></div><p className="rounded-xl border border-[#dfe3ea] bg-white p-4 text-sm leading-7 text-[#566172]">{copy.explanation}</p></div></Card></div></div></div><div className="mx-auto w-full max-w-7xl px-[var(--space-page)]"><div className="grid gap-4 py-10 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label={copy.metrics[1][0]} value={formatNumber(stats.activeLanguages, locale)} hint={copy.metrics[1][1]} /><MetricCard label="Supporters" value={formatNumber(stats.totalBadges, locale)} hint="community support" /><MetricCard label={copy.approved} value={formatNumber(approvedGoal, locale)} hint={copy.goal} /><MetricCard label={copy.average} value={`${stats.averageProgress}%`} hint={copy.progress} /></div><div className="grid gap-10 border-t border-[#dfe3ea] py-16 lg:grid-cols-[.9fr_1.1fr]"><div><p className="pixel-label text-xs text-[#566172]">{copy.flowLabel}</p><h2 className="minecraft-title mt-3 text-4xl leading-none md:text-5xl">{copy.flowTitle}</h2><p className="mt-5 max-w-md leading-7 text-[#566172]">{copy.flowLead}</p></div><div className="grid gap-4 md:grid-cols-3">{copy.steps.map(([number, title, description], index) => <Card key={number} className="p-5 transition duration-200 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[9px_9px_0_#101114]"><span className="font-[var(--font-display)] text-sm font-extrabold" style={{ color: ['#4cc9f0', '#5652ff', '#ff6b5f'][index] }}>{number}</span><h3 className="minecraft-title mt-8 text-2xl">{title}</h3><p className="mt-3 text-sm leading-6 text-[#566172]">{description}</p></Card>)}</div></div><div className="border-t border-[#dfe3ea] py-16"><div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><p className="pixel-label text-[10px] text-[#566172]">{copy.languages}</p><h2 className="minecraft-title mt-2 text-3xl md:text-4xl">{copy.languagesTitle}</h2></div><p className="max-w-xl text-sm leading-7 text-[#566172]">{copy.languagesLead}</p></div><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{featuredLanguages.length ? featuredLanguages.map((language) => <Card key={language.language_id} className="p-4 transition hover:-translate-y-1 hover:shadow-[7px_7px_0_#101114]"><div className="flex justify-between gap-3"><div><p className="font-bold">{language.emoji ? `${language.emoji} ` : ''}{language.name}</p><p className="mt-1 text-xs text-[#566172]">{language.native_name}</p></div><Badge tone="neutral">{language.code}</Badge></div><div className="mt-5"><ProgressBar label={copy.progress} value={Math.round(Number(language.progress_percent ?? 0))} tone="accent" /></div><div className="mt-4 flex flex-wrap gap-2"><Badge tone="success">{formatNumber(Number(language.approved_suggestions ?? 0), locale)} {copy.approvedShort}</Badge><Badge tone="neutral">{formatNumber(Number(language.active_translators ?? 0), locale)} {copy.translators}</Badge></div></Card>) : <Card className="p-6 text-sm text-[#566172] md:col-span-2 xl:col-span-4">{copy.emptyLanguages}</Card>}</div></div><div className="grid gap-6 border-t border-[#dfe3ea] py-16 xl:grid-cols-3"><PersonList title="Top translators" subtitle={locale === 'pt-BR' ? 'Quem mais contribuiu' : 'Leading contributors'} empty={copy.empty} items={data?.translators ?? []} accent="accent" locale={locale} /><PersonList title="Top reviewers" subtitle={locale === 'pt-BR' ? 'Quem protege a qualidade' : 'Quality leaders'} empty={copy.empty} items={data?.reviewers ?? []} accent="success" locale={locale} /><Card className="overflow-hidden p-0"><div className="bg-[#101114] px-6 py-7 text-white"><p className="pixel-label text-[10px] text-[#c7f464]">{copy.finalLabel}</p><h2 className="minecraft-title mt-3 text-4xl leading-none">{copy.finalTitle}</h2><p className="mt-4 text-sm leading-7 text-white/70">{copy.finalLead}</p></div><div className="p-6"><Link to={startPath} className="block-button inline-flex px-5 py-3 text-sm">{copy.start}</Link><p className="mt-5 text-sm leading-7 text-[#566172]">{copy.profileHint}</p></div></Card></div></div></section>;
 }

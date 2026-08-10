@@ -9,7 +9,7 @@ type PageShellProps = PropsWithChildren<{
 
 export function PageShell({ eyebrow, title, description, children }: PageShellProps) {
   return (
-    <div className="space-y-6">
+    <div className="relative z-0 space-y-6">
       <Card className="overflow-hidden p-0">
         <div className="relative overflow-hidden border-b-2 border-[#101114] bg-[#c7f464] px-6 py-3"><div className="absolute inset-y-0 w-1/3 -skew-x-12 bg-white/20 [animation:shine-sweep_5s_ease-in-out_infinite]" /><p className="pixel-label relative text-[10px] text-[#101114]">{eyebrow} // workspace module</p></div>
         <div className="p-6 md:p-8">

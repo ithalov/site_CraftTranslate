@@ -1,22 +1,9 @@
-import { ProtectedFeaturePage } from '@/pages/ProtectedFeaturePage';
+import { WorkspaceModulePage } from '@/pages/WorkspaceModulePage';
 
 export function TranslatePage() {
-  return (
-    <ProtectedFeaturePage
-      eyebrow="Translate"
-      title="Translation studio"
-      description="Base visual para traduzir conteúdo com contexto, status e fluxo colaborativo."
-      items={[
-        { title: 'Source panel', description: 'Áreas separadas para conteúdo original e tradução.' },
-        { title: 'Suggestion layer', description: 'Espaço para sugestões, revisão e edição assistida.' },
-        { title: 'Status timeline', description: 'Linha do tempo para rascunho, revisão e publicação.' },
-        { title: 'Keyboard-ready', description: 'Estrutura preparada para atalhos e trabalho rápido.' }
-      ]}
-      progress={[
-        { label: 'Drafting', value: 81 },
-        { label: 'Context', value: 58 },
-        { label: 'Publish', value: 39 }
-      ]}
-    />
-  );
+  return <WorkspaceModulePage content={{
+    'pt-BR': { eyebrow: 'Traduzir', title: 'Estudio de traducao', description: 'Traduza com contexto, qualidade e um fluxo colaborativo claro.', progressTitle: 'Fluxo de traducao', items: [{ title: 'Texto de origem', description: 'Conteudo original preservado com o contexto necessario.' }, { title: 'Sugestoes', description: 'Espaco para escrever, comparar e aperfeicoar alternativas.' }, { title: 'Status da tarefa', description: 'Acompanhe rascunho, revisao e publicacao.' }, { title: 'Atalhos rapidos', description: 'Estrutura preparada para um trabalho mais agil.' }], progress: [{ label: 'Rascunhos', value: 81 }, { label: 'Contexto', value: 58 }, { label: 'Publicacao', value: 39 }] },
+    en: { eyebrow: 'Translate', title: 'Translation studio', description: 'Translate with context, quality, and a clear collaborative flow.', progressTitle: 'Translation flow', items: [{ title: 'Source text', description: 'Original content preserved with the needed context.' }, { title: 'Suggestions', description: 'A space to write, compare, and improve alternatives.' }, { title: 'Task status', description: 'Follow draft, review, and publishing.' }, { title: 'Quick shortcuts', description: 'A structure ready for faster work.' }], progress: [{ label: 'Drafts', value: 81 }, { label: 'Context', value: 58 }, { label: 'Publishing', value: 39 }] },
+    es: { eyebrow: 'Traducir', title: 'Estudio de traduccion', description: 'Traduce con contexto, calidad y un flujo colaborativo claro.', progressTitle: 'Flujo de traduccion', items: [{ title: 'Texto de origen', description: 'Contenido original preservado con el contexto necesario.' }, { title: 'Sugerencias', description: 'Espacio para escribir, comparar y mejorar alternativas.' }, { title: 'Estado de tarea', description: 'Sigue borrador, revision y publicacion.' }, { title: 'Atajos rapidos', description: 'Estructura lista para un trabajo mas agil.' }], progress: [{ label: 'Borradores', value: 81 }, { label: 'Contexto', value: 58 }, { label: 'Publicacion', value: 39 }] }
+  }} />;
 }

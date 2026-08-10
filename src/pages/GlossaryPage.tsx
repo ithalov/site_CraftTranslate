@@ -1,22 +1,9 @@
-import { ProtectedFeaturePage } from '@/pages/ProtectedFeaturePage';
+import { WorkspaceModulePage } from '@/pages/WorkspaceModulePage';
 
 export function GlossaryPage() {
-  return (
-    <ProtectedFeaturePage
-      eyebrow="Glossary"
-      title="Terminology glossary"
-      description="Base para termos aprovados, sinônimos e regras de consistência."
-      items={[
-        { title: 'Term cards', description: 'Cartões para termos, definições e exemplos.' },
-        { title: 'Synonym rules', description: 'Camada para variações e preferência editorial.' },
-        { title: 'Domain tags', description: 'Classificação por contexto, projeto ou comunidade.' },
-        { title: 'Versioning', description: 'Espaço para evoluir termos sem quebrar traduções antigas.' }
-      ]}
-      progress={[
-        { label: 'Approved terms', value: 77 },
-        { label: 'Synonyms', value: 52 },
-        { label: 'Coverage', value: 69 }
-      ]}
-    />
-  );
+  return <WorkspaceModulePage content={{
+    'pt-BR': { eyebrow: 'Glossario', title: 'Glossario de termos', description: 'Mantenha os termos da comunidade consistentes em todos os idiomas.', progressTitle: 'Cobertura do glossario', items: [{ title: 'Cartoes de termos', description: 'Definicoes, exemplos e contexto para cada termo.' }, { title: 'Regras de sinonimos', description: 'Variacoes e preferencias editoriais registradas.' }, { title: 'Etiquetas de contexto', description: 'Classifique por projeto, recurso ou comunidade.' }, { title: 'Versionamento', description: 'Evolua termos sem perder traducoes antigas.' }], progress: [{ label: 'Termos aprovados', value: 77 }, { label: 'Sinonimos', value: 52 }, { label: 'Cobertura', value: 69 }] },
+    en: { eyebrow: 'Glossary', title: 'Terminology glossary', description: 'Keep community terminology consistent across every language.', progressTitle: 'Glossary coverage', items: [{ title: 'Term cards', description: 'Definitions, examples, and context for each term.' }, { title: 'Synonym rules', description: 'Recorded variations and editorial preferences.' }, { title: 'Context tags', description: 'Classify by project, feature, or community.' }, { title: 'Versioning', description: 'Evolve terms without losing old translations.' }], progress: [{ label: 'Approved terms', value: 77 }, { label: 'Synonyms', value: 52 }, { label: 'Coverage', value: 69 }] },
+    es: { eyebrow: 'Glosario', title: 'Glosario de terminos', description: 'Mantiene la terminologia de la comunidad consistente en cada idioma.', progressTitle: 'Cobertura del glosario', items: [{ title: 'Tarjetas de terminos', description: 'Definiciones, ejemplos y contexto para cada termino.' }, { title: 'Reglas de sinonimos', description: 'Variaciones y preferencias editoriales registradas.' }, { title: 'Etiquetas de contexto', description: 'Clasifica por proyecto, funcion o comunidad.' }, { title: 'Versionado', description: 'Evoluciona terminos sin perder traducciones antiguas.' }], progress: [{ label: 'Terminos aprobados', value: 77 }, { label: 'Sinonimos', value: 52 }, { label: 'Cobertura', value: 69 }] }
+  }} />;
 }

@@ -5,11 +5,18 @@ import { LocaleSwitcher } from '@/components/ui/LocaleSwitcher';
 import { publicNavItems } from '@/navigation/navigation';
 import { paths } from '@/navigation/paths';
 import { classNames } from '@/utils/classNames';
+import { useLocale } from '@/hooks/useLocale';
 
 type SiteHeaderProps = { appName: string };
 
 export function SiteHeader({ appName }: SiteHeaderProps) {
   const { isAuthenticated, user } = useAuth();
+  const { locale } = useLocale();
+  const navigationLabels = locale === 'pt-BR'
+    ? { '/': 'Inicio', '/status': 'Status', '/dashboard': 'Painel', '/login': 'Entrar' }
+    : locale === 'es'
+      ? { '/': 'Inicio', '/status': 'Estado', '/dashboard': 'Panel', '/login': 'Entrar' }
+      : { '/': 'Home', '/status': 'Status', '/dashboard': 'Dashboard', '/login': 'Login' };
   const userMetadata = user?.user_metadata ?? {};
   const avatarUrl =
     userMetadata.avatar_url ?? userMetadata.picture ?? userMetadata.avatar ?? userMetadata.image_url ?? '';
@@ -23,7 +30,7 @@ export function SiteHeader({ appName }: SiteHeaderProps) {
     'Player';
 
   return (
-    <header className="mx-auto w-full max-w-7xl px-[var(--space-page)] py-5">
+    <header className="relative z-50 mx-auto w-full max-w-7xl px-[var(--space-page)] py-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <NavLink to="/" className="flex items-center gap-3">
           <BrandLogo className="h-14 w-auto drop-shadow-[0_10px_20px_rgba(0,0,0,0.14)]" />
@@ -44,7 +51,7 @@ export function SiteHeader({ appName }: SiteHeaderProps) {
                   classNames('transition hover:text-[#5652ff]', isActive && 'text-[#101114]')
                 }
               >
-                {item.label}
+                {navigationLabels[item.to as keyof typeof navigationLabels] ?? item.label}
               </NavLink>
             ))}
           </nav>
@@ -65,7 +72,7 @@ export function SiteHeader({ appName }: SiteHeaderProps) {
               </span>
               <span className="max-w-[160px] text-left">
                 <span className="block truncate text-sm font-bold text-[#101114]">{displayName}</span>
-                <span className="block text-[10px] uppercase tracking-[0.25em] text-[#566172]">Open profile</span>
+                <span className="block text-[10px] uppercase tracking-[0.25em] text-[#566172]">{locale === 'pt-BR' ? 'Abrir perfil' : locale === 'es' ? 'Abrir perfil' : 'Open profile'}</span>
               </span>
             </Link>
           ) : null}

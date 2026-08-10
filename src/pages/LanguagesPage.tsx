@@ -1,22 +1,9 @@
-import { ProtectedFeaturePage } from '@/pages/ProtectedFeaturePage';
+import { WorkspaceModulePage } from '@/pages/WorkspaceModulePage';
 
 export function LanguagesPage() {
-  return (
-    <ProtectedFeaturePage
-      eyebrow="Languages"
-      title="Language workspace"
-      description="Base para cadastrar, filtrar e organizar idiomas sem prender a interface a um formato único."
-      items={[
-        { title: 'Locale registry', description: 'Estrutura para idiomas suportados, variantes e metadados.' },
-        { title: 'Display labels', description: 'Rótulos consistentes para navegação, listas e seletores.' },
-        { title: 'Regional fallbacks', description: 'Ponto de partida para fallback e prioridade por região.' },
-        { title: 'Import pipeline', description: 'Espaço reservado para importar e revisar novos idiomas.' }
-      ]}
-      progress={[
-        { label: 'Registry', value: 72 },
-        { label: 'Fallbacks', value: 48 },
-        { label: 'UI coverage', value: 63 }
-      ]}
-    />
-  );
+  return <WorkspaceModulePage content={{
+    'pt-BR': { eyebrow: 'Idiomas', title: 'Central de idiomas', description: 'Organize idiomas, variantes e prioridades da comunidade em um so lugar.', progressTitle: 'Cobertura de idiomas', items: [{ title: 'Catalogo de idiomas', description: 'Idiomas suportados, variantes e metadados essenciais.' }, { title: 'Nomes consistentes', description: 'Rotulos claros para navegacao, listas e seletores.' }, { title: 'Preferencias regionais', description: 'Prioridades e alternativas por regiao.' }, { title: 'Importar idiomas', description: 'Base para incluir e revisar novos idiomas.' }], progress: [{ label: 'Catalogo', value: 72 }, { label: 'Alternativas', value: 48 }, { label: 'Interface', value: 63 }] },
+    en: { eyebrow: 'Languages', title: 'Language center', description: 'Organize community languages, variants, and priorities in one place.', progressTitle: 'Language coverage', items: [{ title: 'Language catalog', description: 'Supported languages, variants, and essential metadata.' }, { title: 'Consistent names', description: 'Clear labels for navigation, lists, and selectors.' }, { title: 'Regional preferences', description: 'Priorities and fallbacks by region.' }, { title: 'Import languages', description: 'A foundation for adding and reviewing new languages.' }], progress: [{ label: 'Catalog', value: 72 }, { label: 'Fallbacks', value: 48 }, { label: 'Interface', value: 63 }] },
+    es: { eyebrow: 'Idiomas', title: 'Centro de idiomas', description: 'Organiza idiomas, variantes y prioridades de la comunidad en un solo lugar.', progressTitle: 'Cobertura de idiomas', items: [{ title: 'Catalogo de idiomas', description: 'Idiomas compatibles, variantes y metadatos esenciales.' }, { title: 'Nombres consistentes', description: 'Etiquetas claras para navegacion, listas y selectores.' }, { title: 'Preferencias regionales', description: 'Prioridades y alternativas por region.' }, { title: 'Importar idiomas', description: 'Base para agregar y revisar nuevos idiomas.' }], progress: [{ label: 'Catalogo', value: 72 }, { label: 'Alternativas', value: 48 }, { label: 'Interfaz', value: 63 }] }
+  }} />;
 }

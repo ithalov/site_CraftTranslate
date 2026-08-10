@@ -12,6 +12,7 @@ type ProtectedRouteProps = PropsWithChildren<{
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { status, isAuthenticated, isAdmin, user } = useAuth();
   const location = useLocation();
+  const userId = user?.id;
   const [onboardingStatus, setOnboardingStatus] = useState<'loading' | 'complete' | 'required'>(
     'loading'
   );
@@ -19,7 +20,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   useEffect(() => {
     let active = true;
 
-    if (!isAuthenticated || !supabase || !user) {
+    if (!isAuthenticated || !supabase || !userId) {
       setOnboardingStatus('complete');
       return;
     }
@@ -31,7 +32,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
         const { count, error } = await supabase
           .from('user_languages')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
 
         if (!active) {
           return;
@@ -53,7 +54,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return () => {
       active = false;
     };
-  }, [isAuthenticated, location.pathname, user]);
+  // Supabase may refresh tokens when the browser regains focus. The user object
+  // changes during that refresh, but the onboarding state does not, so depend on
+  // the stable id to avoid showing the route loader again.
+  }, [isAuthenticated, location.pathname, userId]);
 
   if (status === 'loading' || onboardingStatus === 'loading') {
     return <RouteLoadingScreen />;

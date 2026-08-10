@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge';
 import { dashboardNavItems } from '@/navigation/navigation';
 import { classNames } from '@/utils/classNames';
 import { useLocale } from '@/hooks/useLocale';
+import { paths } from '@/navigation/paths';
 
 export function DashboardSidebar() {
   const { locale } = useLocale();
@@ -12,6 +13,11 @@ export function DashboardSidebar() {
     : locale === 'es'
       ? { workspace: 'Espacio', beta: 'beta', status: 'Estado del servidor', systems: 'Los sistemas de traduccion estan en linea.' }
       : { workspace: 'Workspace', beta: 'beta', status: 'Server status', systems: 'Translation systems are online.' };
+  const labels = locale === 'pt-BR'
+    ? { [paths.dashboard]: 'Painel', [paths.languages]: 'Idiomas', [paths.translate]: 'Traduzir', [paths.review]: 'Revisar', [paths.glossary]: 'Glossario', [paths.leaderboard]: 'Ranking', [paths.profile]: 'Perfil', [paths.admin]: 'Administracao' }
+    : locale === 'es'
+      ? { [paths.dashboard]: 'Panel', [paths.languages]: 'Idiomas', [paths.translate]: 'Traducir', [paths.review]: 'Revisar', [paths.glossary]: 'Glosario', [paths.leaderboard]: 'Ranking', [paths.profile]: 'Perfil', [paths.admin]: 'Administracion' }
+      : {};
   return (
     <aside className="pixel-panel flex h-full flex-col gap-5 p-4 lg:p-5">
       <div className="border-b border-[#dfe3ea] pb-4">
@@ -39,7 +45,7 @@ export function DashboardSidebar() {
             }
           >
             <span className="font-[var(--font-display)] text-xs text-[#5652ff]">0{index + 1}</span>
-            {item.label}
+            {labels[item.to as keyof typeof labels] ?? item.label}
           </NavLink>
         ))}
       </nav>
