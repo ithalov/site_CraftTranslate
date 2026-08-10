@@ -6,8 +6,11 @@ import { PageShell } from '@/components/page/PageShell';
 import { useLocale } from '@/hooks/useLocale';
 import { paths } from '@/navigation/paths';
 import {
+  agreeTranslationWorkspaceSuggestion,
+  findTranslationWorkspaceDuplicate,
   fetchTranslationWorkspaceSession,
   submitTranslationWorkspaceSuggestion,
+  type TranslationWorkspaceDuplicateSuggestion,
   type TranslationWorkspaceSession,
   validateTranslationPlaceholders
 } from '@/services/translationWorkspace';
@@ -53,6 +56,14 @@ type Copy = {
   totalAvailable: string;
   compatible: string;
   noSuggestion: string;
+  duplicateTitle: string;
+  duplicateDescription: string;
+  duplicateAgree: string;
+  duplicateImprove: string;
+  duplicateAuthor: string;
+  duplicateCreatedAt: string;
+  duplicateEquivalent: string;
+  duplicateHint: string;
   placeholderGuardTitle: string;
   placeholderGuardBlocked: string;
   placeholderGuardPreserve: string;
@@ -102,6 +113,14 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     totalAvailable: 'Disponiveis',
     compatible: 'Compativel com seu perfil',
     noSuggestion: 'Nenhuma sugestao automatica disponivel.',
+    duplicateTitle: 'Sugestao equivalente encontrada',
+    duplicateDescription: 'Ja existe uma traducao muito parecida para esta string. Use Agree se ela estiver correta, ou Suggest Improvement se quiser propor uma versao melhorada.',
+    duplicateAgree: 'Agree',
+    duplicateImprove: 'Suggest Improvement',
+    duplicateAuthor: 'Autoria',
+    duplicateCreatedAt: 'Criada em',
+    duplicateEquivalent: 'Equivalente',
+    duplicateHint: 'Para evitar duplicacao, aprove a sugestao existente ou envie uma melhoria vinculada a ela.',
     placeholderGuardTitle: 'Variaveis protegidas',
     placeholderGuardBlocked: 'A traducao foi bloqueada porque um placeholder obrigatorio foi removido ou alterado.',
     placeholderGuardPreserve: 'Preserve exatamente estes tokens:',
@@ -149,6 +168,14 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     totalAvailable: 'Available',
     compatible: 'Compatible with your profile',
     noSuggestion: 'No automatic suggestion is available.',
+    duplicateTitle: 'Equivalent suggestion found',
+    duplicateDescription: 'A very similar translation already exists for this string. Use Agree if it is correct, or Suggest Improvement if you want to propose a refined version.',
+    duplicateAgree: 'Agree',
+    duplicateImprove: 'Suggest Improvement',
+    duplicateAuthor: 'Author',
+    duplicateCreatedAt: 'Created at',
+    duplicateEquivalent: 'Equivalent',
+    duplicateHint: 'To avoid duplication, approve the existing suggestion or submit an improvement linked to it.',
     placeholderGuardTitle: 'Protected variables',
     placeholderGuardBlocked: 'The translation was blocked because a required placeholder was removed or changed.',
     placeholderGuardPreserve: 'Preserve these tokens exactly:',
@@ -196,6 +223,14 @@ const copyByLocale: Record<'pt-BR' | 'en' | 'es', Copy> = {
     totalAvailable: 'Disponibles',
     compatible: 'Compatible con tu perfil',
     noSuggestion: 'No hay sugerencia automatica disponible.',
+    duplicateTitle: 'Sugerencia equivalente encontrada',
+    duplicateDescription: 'Ya existe una traduccion muy parecida para esta string. Usa Agree si esta correcta, o Suggest Improvement si quieres proponer una version mejorada.',
+    duplicateAgree: 'Agree',
+    duplicateImprove: 'Suggest Improvement',
+    duplicateAuthor: 'Autor',
+    duplicateCreatedAt: 'Creada en',
+    duplicateEquivalent: 'Equivalente',
+    duplicateHint: 'Para evitar duplicacion, aprueba la sugerencia existente o envia una mejora vinculada a ella.',
     placeholderGuardTitle: 'Variables protegidas',
     placeholderGuardBlocked: 'La traduccion fue bloqueada porque un placeholder obligatorio fue removido o modificado.',
     placeholderGuardPreserve: 'Preserva exactamente estos tokens:',
@@ -218,6 +253,23 @@ function textareaClassName() {
   return 'min-h-[140px] w-full rounded-2xl border-2 border-[#101114] bg-white px-4 py-3 text-sm text-[#101114] outline-none transition placeholder:text-[#8a94a6] focus:border-[#5652ff]';
 }
 
+function formatTimestamp(value: string | null, locale: 'pt-BR' | 'en' | 'es') {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(locale === 'pt-BR' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(date);
+}
+
 export function TranslatePage() {
   const { locale } = useLocale();
   const copy = copyByLocale[locale];
@@ -235,6 +287,8 @@ export function TranslatePage() {
   const [rationale, setRationale] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [duplicateSuggestion, setDuplicateSuggestion] = useState<TranslationWorkspaceDuplicateSuggestion | null>(null);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
 
   const currentItem = session?.items[activeIndex] ?? null;
   const placeholderValidation = useMemo(() => {
@@ -267,6 +321,7 @@ export function TranslatePage() {
       setTranslation(firstItem?.my_suggestion?.suggestion_text ?? firstItem?.auto_suggestion?.suggestion_text ?? '');
       setRationale(firstItem?.my_suggestion?.rationale ?? '');
       setNotes(firstItem?.my_suggestion?.notes ?? '');
+      setDuplicateSuggestion(null);
     } catch (loadError) {
       setSession(null);
       setError(loadError instanceof Error ? loadError.message : copy.error);
@@ -283,6 +338,7 @@ export function TranslatePage() {
 
   useEffect(() => {
     if (!currentItem) {
+      setDuplicateSuggestion(null);
       return;
     }
 
@@ -290,6 +346,44 @@ export function TranslatePage() {
     setRationale(currentItem.my_suggestion?.rationale ?? '');
     setNotes(currentItem.my_suggestion?.notes ?? '');
   }, [currentItem]);
+
+  useEffect(() => {
+    if (!currentItem || translation.trim().length === 0) {
+      setDuplicateSuggestion(null);
+      return;
+    }
+
+    let mounted = true;
+    const timeout = window.setTimeout(() => {
+      setDuplicateLoading(true);
+
+      void findTranslationWorkspaceDuplicate({
+        translationKeyId: currentItem.translation_key_id,
+        targetLanguageCode: currentItem.target_language_code,
+        suggestionText: translation
+      })
+        .then((result) => {
+          if (mounted) {
+            setDuplicateSuggestion(result);
+          }
+        })
+        .catch(() => {
+          if (mounted) {
+            setDuplicateSuggestion(null);
+          }
+        })
+        .finally(() => {
+          if (mounted) {
+            setDuplicateLoading(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeout);
+    };
+  }, [currentItem, translation]);
 
   const progressLabel = useMemo(() => {
     if (!session) {
@@ -310,7 +404,7 @@ export function TranslatePage() {
     await loadSession(session.session_offset + session.batch_size, true);
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(options?: { supersedesSuggestionId?: string | null }) {
     if (!session || !currentItem || translation.trim().length === 0) {
       return;
     }
@@ -329,7 +423,8 @@ export function TranslatePage() {
         targetLanguageCode: session.target_language_code,
         suggestionText: translation,
         rationale: rationale.trim().length > 0 ? rationale : null,
-        notes: notes.trim().length > 0 ? notes : null
+        notes: notes.trim().length > 0 ? notes : null,
+        supersedesSuggestionId: options?.supersedesSuggestionId ?? null
       });
 
       setSubmittedCount((value) => value + 1);
@@ -347,6 +442,32 @@ export function TranslatePage() {
       setSession((current) => (current ? { ...current, items: [] } : current));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : copy.error);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAgree() {
+    if (!duplicateSuggestion) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      await agreeTranslationWorkspaceSuggestion({ suggestionId: duplicateSuggestion.suggestion_id });
+      setSkippedCount((value) => value + 1);
+
+      if (session && activeIndex + 1 < session.items.length) {
+        setActiveIndex((value) => value + 1);
+        return;
+      }
+
+      if (session?.has_more) {
+        await goToNextSession();
+      }
+    } catch (agreeError) {
+      setError(agreeError instanceof Error ? agreeError.message : copy.error);
     } finally {
       setSubmitting(false);
     }
@@ -505,6 +626,49 @@ export function TranslatePage() {
                 </div>
               </div>
 
+              {duplicateLoading ? (
+                <div className="mt-6 rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4 text-sm text-[#566172]">
+                  {locale === 'pt-BR' ? 'Verificando sugestoes equivalentes...' : locale === 'es' ? 'Verificando sugerencias equivalentes...' : 'Checking equivalent suggestions...'}
+                </div>
+              ) : duplicateSuggestion ? (
+                <div className="mt-6 rounded-2xl border-2 border-[#101114] bg-[#fff8df] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="pixel-label text-[10px] text-[#8c5510]">{copy.duplicateTitle}</p>
+                    <Badge tone="warning">{copy.duplicateEquivalent}</Badge>
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-[#101114]">{copy.duplicateDescription}</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl border border-[#e59b32] bg-white p-4">
+                      <p className="pixel-label text-[10px] text-[#566172]">{copy.duplicateAuthor}</p>
+                      <p className="mt-2 text-sm font-bold text-[#101114]">{duplicateSuggestion.author_name ?? duplicateSuggestion.author_username ?? '-'}</p>
+                      <p className="mt-2 text-xs text-[#566172]">{formatTimestamp(duplicateSuggestion.created_at, locale)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-[#e59b32] bg-white p-4">
+                      <p className="pixel-label text-[10px] text-[#566172]">{copy.duplicateHint}</p>
+                      <p className="mt-2 text-sm leading-7 text-[#101114]">{duplicateSuggestion.suggestion_text}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleAgree()}
+                      disabled={submitting}
+                      className="rounded-2xl border-2 border-[#101114] bg-white px-4 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:shadow-[4px_4px_0_#101114] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {copy.duplicateAgree}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSubmit({ supersedesSuggestionId: duplicateSuggestion.suggestion_id })}
+                      disabled={submitting || translation.trim().length === 0 || hasPlaceholderWarning}
+                      className="rounded-2xl border-2 border-[#101114] bg-[#c7f464] px-4 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:shadow-[4px_4px_0_#101114] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {submitting ? copy.submitting : copy.duplicateImprove}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-6 rounded-2xl border-2 border-[#101114] bg-[#f7f8fb] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="pixel-label text-[10px] text-[#566172]">{copy.contextPack}</p>
@@ -645,11 +809,11 @@ export function TranslatePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleSubmit()}
+                  onClick={() => void handleSubmit(duplicateSuggestion ? { supersedesSuggestionId: duplicateSuggestion.suggestion_id } : undefined)}
                   disabled={submitting || translation.trim().length === 0 || hasPlaceholderWarning}
                   className="rounded-2xl border-2 border-[#101114] bg-[#c7f464] px-4 py-3 font-[var(--font-display)] text-sm font-bold text-[#101114] transition hover:-translate-y-1 hover:shadow-[4px_4px_0_#101114] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? copy.submitting : copy.submit}
+                  {submitting ? copy.submitting : duplicateSuggestion ? copy.duplicateImprove : copy.submit}
                 </button>
               </div>
 

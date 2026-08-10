@@ -1188,6 +1188,36 @@ export type Database = {
             translation_suggestions: number;
           }[];
         };
+        translation_workspace_agree_suggestion: {
+          Args: {
+            suggestion_id: string;
+          };
+          Returns: {
+            created_at: string;
+            suggestion_id: string;
+            updated_at: string;
+            vote: string;
+            vote_id: string;
+          }[];
+        };
+        translation_workspace_detect_duplicate: {
+          Args: {
+            suggestion_text: string;
+            target_language_code: string;
+            translation_key_id: string;
+          };
+          Returns: {
+            author_id: string | null;
+            author_name: string | null;
+            author_username: string | null;
+            created_at: string | null;
+            match_kind: string;
+            status: string;
+            suggestion_id: string;
+            suggestion_text: string;
+            version_number: number;
+          }[];
+        };
         translation_workspace_session: {
           Args: {
             batch_size?: number;
@@ -1216,6 +1246,7 @@ export type Database = {
             notes?: string | null;
             rationale?: string | null;
             suggestion_text: string;
+            supersedes_suggestion_id?: string | null;
             target_language_code: string;
             translation_key_id: string;
           };

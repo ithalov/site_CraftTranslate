@@ -16,6 +16,131 @@ $$;
 
 grant execute on function public.language_proficiency_rank(text) to anon, authenticated;
 
+create or replace function public.normalize_translation_workspace_text(input_text text)
+returns text
+language sql
+immutable
+as $$
+  select regexp_replace(lower(trim(coalesce(input_text, ''))), '[^[:alnum:]{}%_]+', '', 'g');
+$$;
+
+create or replace function public.translation_workspace_detect_duplicate(
+  translation_key_id uuid,
+  target_language_code text,
+  suggestion_text text
+)
+returns table (
+  suggestion_id uuid,
+  version_number integer,
+  status text,
+  suggestion_text text,
+  author_id uuid,
+  author_name text,
+  author_username text,
+  created_at timestamptz,
+  match_kind text
+)
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  with target_language as (
+    select
+      l.id
+    from public.languages l
+    where l.is_active
+      and lower(l.code) = lower(trim(coalesce(target_language_code, '')))
+      and public.can_translate_language(l.id)
+    limit 1
+  )
+  select
+    ts.id as suggestion_id,
+    ts.version_number,
+    ts.status::text as status,
+    ts.suggestion_text,
+    ts.author_id,
+    p.display_name as author_name,
+    p.username as author_username,
+    ts.created_at,
+    'equivalent'::text as match_kind
+  from public.translation_suggestions ts
+  join target_language tl on tl.id = ts.target_language_id
+  left join public.profiles p on p.user_id = ts.author_id
+  where ts.translation_key_id = translation_key_id
+    and public.normalize_translation_workspace_text(ts.suggestion_text) = public.normalize_translation_workspace_text(suggestion_text)
+  order by
+    case ts.status
+      when 'approved' then 0
+      when 'pending' then 1
+      when 'draft' then 2
+      else 3
+    end,
+    ts.version_number desc,
+    ts.created_at desc
+  limit 1;
+$$;
+
+grant execute on function public.translation_workspace_detect_duplicate(uuid, text, text) to authenticated;
+
+create or replace function public.translation_workspace_agree_suggestion(
+  suggestion_id uuid
+)
+returns table (
+  vote_id uuid,
+  translation_suggestion_id uuid,
+  vote text,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_vote_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if not exists (
+    select 1
+    from public.translation_suggestions ts
+    where ts.id = suggestion_id
+  ) then
+    raise exception 'Suggestion not found';
+  end if;
+
+  insert into public.translation_votes (
+    translation_suggestion_id,
+    voter_id,
+    vote,
+    weight
+  ) values (
+    suggestion_id,
+    auth.uid(),
+    'helpful',
+    1
+  )
+  on conflict (translation_suggestion_id, voter_id) do update
+    set vote = excluded.vote,
+        weight = greatest(public.translation_votes.weight, excluded.weight),
+        updated_at = timezone('utc', now())
+  returning id into v_vote_id;
+
+  return query
+  select
+    v_vote_id,
+    suggestion_id,
+    'helpful'::text,
+    timezone('utc', now()),
+    timezone('utc', now());
+end;
+$$;
+
+grant execute on function public.translation_workspace_agree_suggestion(uuid) to authenticated;
+
 create or replace function public.can_translate_language(language_uuid uuid)
 returns boolean
 language sql
@@ -336,7 +461,8 @@ create or replace function public.translation_workspace_submit(
   target_language_code text,
   suggestion_text text,
   rationale text default null,
-  notes text default null
+  notes text default null,
+  supersedes_suggestion_id uuid default null
 )
 returns table (
   suggestion_id uuid,
@@ -357,6 +483,7 @@ declare
   v_missing_tokens text[] := array[]::text[];
   v_extra_tokens text[] := array[]::text[];
   v_record record;
+  v_duplicate record;
 begin
   if auth.uid() is null then
     raise exception 'Authentication required';
@@ -431,6 +558,36 @@ begin
     raise exception 'Placeholder mismatch. Missing: %, extra: %', v_missing_tokens, v_extra_tokens;
   end if;
 
+  if supersedes_suggestion_id is not null then
+    if not exists (
+      select 1
+      from public.translation_suggestions ts
+      where ts.id = supersedes_suggestion_id
+        and ts.translation_key_id = translation_key_id
+        and ts.target_language_id = v_target_language_id
+    ) then
+      raise exception 'Base suggestion is not valid for this translation key';
+    end if;
+  end if;
+
+  select *
+    into v_duplicate
+  from public.translation_workspace_detect_duplicate(
+    translation_key_id,
+    target_language_code,
+    v_clean_text
+  )
+  limit 1;
+
+  if v_duplicate.suggestion_id is not null and supersedes_suggestion_id is null then
+    raise exception 'Equivalent translation already exists'
+      using detail = format(
+        'Use Agree on suggestion %s or submit as an improvement.',
+        v_duplicate.suggestion_id
+      ),
+      hint = 'Choose Agree or Suggest Improvement instead of creating a duplicate.';
+  end if;
+
   select coalesce(max(ts.version_number), 0) + 1
     into v_version_number
   from public.translation_suggestions ts
@@ -445,6 +602,7 @@ begin
     suggestion_text,
     rationale,
     notes,
+    supersedes_suggestion_id,
     status
   ) values (
     translation_key_id,
@@ -454,6 +612,7 @@ begin
     v_clean_text,
     nullif(trim(coalesce(rationale, '')), ''),
     nullif(trim(coalesce(notes, '')), ''),
+    supersedes_suggestion_id,
     'pending'
   )
   returning id into v_suggestion_id;

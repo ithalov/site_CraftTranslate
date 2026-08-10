@@ -51,6 +51,18 @@ export type TranslationWorkspaceItem = {
   glossary_terms: TranslationWorkspaceGlossaryTerm[];
 };
 
+export type TranslationWorkspaceDuplicateSuggestion = {
+  suggestion_id: string;
+  version_number: number;
+  status: string;
+  suggestion_text: string;
+  author_id: string | null;
+  author_name: string | null;
+  author_username: string | null;
+  created_at: string | null;
+  match_kind: string;
+};
+
 export type TranslationWorkspacePlaceholderValidation = {
   valid: boolean;
   required: string[];
@@ -182,6 +194,26 @@ function parseItems(value: Json): TranslationWorkspaceItem[] {
   return value.map(parseItem).filter((item): item is TranslationWorkspaceItem => item !== null && item.translation_key_id.length > 0);
 }
 
+function parseDuplicateSuggestion(value: Json): TranslationWorkspaceDuplicateSuggestion | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const duplicate = value as Record<string, Json | undefined>;
+
+  return {
+    suggestion_id: String(duplicate.suggestion_id ?? ''),
+    version_number: toNumber(duplicate.version_number),
+    status: String(duplicate.status ?? 'draft'),
+    suggestion_text: String(duplicate.suggestion_text ?? ''),
+    author_id: duplicate.author_id == null ? null : String(duplicate.author_id),
+    author_name: duplicate.author_name == null ? null : String(duplicate.author_name),
+    author_username: duplicate.author_username == null ? null : String(duplicate.author_username),
+    created_at: duplicate.created_at == null ? null : String(duplicate.created_at),
+    match_kind: String(duplicate.match_kind ?? 'equivalent')
+  };
+}
+
 function extractPlaceholders(text: string) {
   const matches = text.match(/(\{[A-Za-z0-9_]+\}|%[sd])/g);
 
@@ -283,12 +315,57 @@ export async function fetchTranslationWorkspaceSession(params: {
   return normalizeSessionRow(row);
 }
 
+export async function findTranslationWorkspaceDuplicate(params: {
+  translationKeyId: string;
+  targetLanguageCode: string;
+  suggestionText: string;
+}): Promise<TranslationWorkspaceDuplicateSuggestion | null> {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase.rpc('translation_workspace_detect_duplicate', {
+    translation_key_id: params.translationKeyId,
+    target_language_code: params.targetLanguageCode,
+    suggestion_text: params.suggestionText
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+
+  if (!row) {
+    return null;
+  }
+
+  return parseDuplicateSuggestion(row as Json);
+}
+
+export async function agreeTranslationWorkspaceSuggestion(params: { suggestionId: string }) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data, error } = await supabase.rpc('translation_workspace_agree_suggestion', {
+    suggestion_id: params.suggestionId
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Array.isArray(data) ? data[0] ?? null : null;
+}
+
 export async function submitTranslationWorkspaceSuggestion(params: {
   translationKeyId: string;
   targetLanguageCode: string;
   suggestionText: string;
   rationale?: string | null;
   notes?: string | null;
+  supersedesSuggestionId?: string | null;
 }): Promise<{
   suggestion_id: string;
   version_number: number;
@@ -304,7 +381,8 @@ export async function submitTranslationWorkspaceSuggestion(params: {
     target_language_code: params.targetLanguageCode,
     suggestion_text: params.suggestionText,
     rationale: params.rationale ?? null,
-    notes: params.notes ?? null
+    notes: params.notes ?? null,
+    supersedes_suggestion_id: params.supersedesSuggestionId ?? null
   });
 
   if (error) {
