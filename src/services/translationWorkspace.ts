@@ -1,15 +1,25 @@
 import { supabase } from '@/services/supabase';
 import translationSeed from '@/data/translation-seed.json';
-import { generatedTranslationContent } from '@/data/generated-translation-content';
+import { loadWorkspaceSourceStrings } from '@/services/translationContent';
 import type { Database, Json } from '@/integrations/supabase/database.types';
 
 type TranslationWorkspaceSessionRow = Database['public']['Functions']['translation_workspace_session']['Returns'][number];
 type PublicLanguageGlossaryRow = Database['public']['Functions']['public_language_glossary']['Returns'][number];
 type TranslationSeed = typeof translationSeed;
 type TranslationSeedLanguage = TranslationSeed['languages'][number];
-type TranslationSeedString = TranslationSeed['strings'][number] | (typeof generatedTranslationContent)[number];
-
-const allSeedStrings: TranslationSeedString[] = [...translationSeed.strings, ...generatedTranslationContent];
+type TranslationSeedString = {
+  id: string;
+  key_name: string;
+  source_text: string;
+  category: string;
+  subcategory: string | null;
+  theme: string | null;
+  context: string;
+  notes: string;
+  protected_variables: string[];
+  protected_terms: string[];
+  supported_targets: string[];
+};
 
 const LOCAL_WORKSPACE_SUGGESTIONS_KEY = 'chattranslate-local-workspace-suggestions-v1';
 
@@ -168,13 +178,14 @@ function getSeedLanguage(code: string): TranslationSeedLanguage | null {
   return translationSeed.languages.find((language) => language.code.toLowerCase() === normalizedCode) ?? translationSeed.languages[0] ?? null;
 }
 
-function getSeedStrings(languageCode: string, categorySlug?: string | null): TranslationSeedString[] {
+async function getSeedStrings(languageCode: string, categorySlug?: string | null): Promise<TranslationSeedString[]> {
   const targetLanguage = getSeedLanguage(languageCode);
 
   if (!targetLanguage) {
     return [];
   }
 
+  const allSeedStrings = await loadWorkspaceSourceStrings();
   const normalizedCategory = normalizeSlug(categorySlug ?? '');
   const isWildcardCategory = normalizedCategory.length === 0 || normalizedCategory === 'all' || normalizedCategory === 'general';
 
@@ -186,10 +197,10 @@ function getSeedStrings(languageCode: string, categorySlug?: string | null): Tra
 
   return allSeedStrings.filter((entry) => {
     const matchesTarget = entry.supported_targets.some((code) => code.toLowerCase() === targetLanguage.code.toLowerCase());
-    const matchesCategory =
-      normalizeSlug(entry.category) === normalizedCategory ||
-      normalizeSlug(entry.subcategory ?? '') === normalizedCategory ||
-      normalizeSlug(entry.theme) === normalizedCategory;
+      const matchesCategory =
+        normalizeSlug(entry.category) === normalizedCategory ||
+        normalizeSlug(entry.subcategory ?? '') === normalizedCategory ||
+      normalizeSlug(entry.theme ?? '') === normalizedCategory;
 
     return matchesTarget && matchesCategory;
   });
@@ -329,20 +340,20 @@ function buildSeedItem(item: TranslationSeedString, targetLanguage: TranslationS
   };
 }
 
-function buildSeedSession(
+async function buildSeedSession(
   targetLanguageCode: string,
   categorySlug?: string | null,
   batchSize = 10,
   sessionOffset = 0,
   viewerUserId?: string | null
-): TranslationWorkspaceSession | null {
+): Promise<TranslationWorkspaceSession | null> {
   const targetLanguage = getSeedLanguage(targetLanguageCode);
 
   if (!targetLanguage) {
     return null;
   }
 
-  const filteredStrings = getSeedStrings(targetLanguage.code, categorySlug);
+  const filteredStrings = await getSeedStrings(targetLanguage.code, categorySlug);
   const rotation = getPersonalizedRotation(viewerUserId, targetLanguage.code, categorySlug, filteredStrings.length);
   const normalizedBatchSize = Math.max(1, Math.min(batchSize || 10, 20));
   const normalizedSessionOffset = Math.max(0, sessionOffset || 0);

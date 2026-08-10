@@ -8,6 +8,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { paths } from '@/navigation/paths';
 import translationSeed from '@/data/translation-seed.json';
 import { generatedTranslationContentSummary } from '@/data/generated-translation-content';
+import { getWorkspaceContentSummary } from '@/services/translationContent';
 import {
   agreeTranslationWorkspaceSuggestion,
   findTranslationWorkspaceDuplicate,
@@ -497,6 +498,14 @@ export function TranslatePage() {
   const [duplicateLoading, setDuplicateLoading] = useState(false);
   const [communityProposals, setCommunityProposals] = useState<CommunityPhraseProposal[]>(() => loadCommunityPhraseProposals());
   const [showCommunityIntake, setShowCommunityIntake] = useState(false);
+  const [contentSummary, setContentSummary] = useState({
+    localSeedCount: translationSeed.strings.length,
+    generatedCount: generatedTranslationContentSummary.total,
+    remoteCount: 0,
+    totalCount: translationSeed.strings.length + generatedTranslationContentSummary.total,
+    remoteSourceUrl: '',
+    remoteLoaded: false
+  });
   const [communityProposalForm, setCommunityProposalForm] = useState({
     source_text: '',
     key_name: '',
@@ -617,6 +626,33 @@ export function TranslatePage() {
     saveCommunityPhraseProposals(communityProposals);
   }, [communityProposals]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    void getWorkspaceContentSummary()
+      .then((summary) => {
+        if (mounted) {
+          setContentSummary(summary);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setContentSummary({
+            localSeedCount: translationSeed.strings.length,
+            generatedCount: generatedTranslationContentSummary.total,
+            remoteCount: 0,
+            totalCount: translationSeed.strings.length + generatedTranslationContentSummary.total,
+            remoteSourceUrl: '',
+            remoteLoaded: false
+          });
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const progressLabel = useMemo(() => {
     if (!session) {
       return '0/0';
@@ -627,7 +663,7 @@ export function TranslatePage() {
 
   const processedCount = submittedCount + skippedCount;
   const remainingCount = session ? Math.max(session.loaded_count - processedCount, 0) : 0;
-  const seedStringCount = translationSeed.strings.length + generatedTranslationContentSummary.total;
+  const seedStringCount = contentSummary.totalCount;
   const proposalRuleCount = translationSeed.proposal_rules.length;
   const queueControlsCopy = locale === 'pt-BR'
     ? {
@@ -859,7 +895,12 @@ export function TranslatePage() {
                   {languageCode ? <Badge tone="neutral" className="border-white/10 bg-white/10 text-white">{languageCode}</Badge> : null}
                   <Badge tone="neutral" className="border-white/10 bg-white/10 text-white">{sessionBadge}</Badge>
                   <Badge tone="success">{copy.compatible}</Badge>
-                  <Badge tone="warning">{`${seedStringCount} seed strings`}</Badge>
+                  <Badge tone="warning">{`${seedStringCount.toLocaleString()} seed strings`}</Badge>
+                  {contentSummary.remoteCount > 0 ? (
+                    <Badge tone="neutral" className="border-white/10 bg-white/10 text-white">
+                      {`${contentSummary.remoteCount.toLocaleString()} from GitHub`}
+                    </Badge>
+                  ) : null}
                   <Badge tone="neutral" className="border-white/10 bg-white/10 text-white">{`${proposalRuleCount} proposal rules`}</Badge>
                 </div>
               </div>
