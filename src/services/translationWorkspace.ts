@@ -158,10 +158,11 @@ function getPersonalizedRotation(viewerUserId: string | null | undefined, langua
 function getSeedLanguage(code: string): TranslationSeedLanguage | null {
   const normalizedCode = code.trim().toLowerCase();
 
-  return (
-    translationSeed.languages.find((language) => language.code.toLowerCase() === normalizedCode) ??
-    null
-  );
+  if (normalizedCode.length === 0) {
+    return translationSeed.languages[0] ?? null;
+  }
+
+  return translationSeed.languages.find((language) => language.code.toLowerCase() === normalizedCode) ?? translationSeed.languages[0] ?? null;
 }
 
 function getSeedStrings(languageCode: string, categorySlug?: string | null): TranslationSeedString[] {
