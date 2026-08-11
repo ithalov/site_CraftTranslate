@@ -3,6 +3,7 @@ import type { Database, Json } from '@/integrations/supabase/database.types';
 
 type PublicLanguageCatalogRow = Database['public']['Functions']['public_language_catalog']['Returns'][number];
 type PublicLanguagePageRow = Database['public']['Functions']['public_language_page']['Returns'][number];
+type PublicLanguageCategoryStatsRow = Database['public']['Functions']['public_language_category_stats']['Returns'][number];
 
 export type PublicLanguageCatalogItem = PublicLanguageCatalogRow;
 
@@ -279,19 +280,38 @@ export async function fetchPublicLanguagePage(code: string): Promise<PublicLangu
     return null;
   }
 
-  const { data, error } = await supabase.rpc('public_language_page', {
-    language_code: code
-  });
+  const [pageResult, categoryResult] = await Promise.all([
+    supabase.rpc('public_language_page', { language_code: code }),
+    supabase.rpc('public_language_category_stats', { p_language_code: code })
+  ]);
 
-  if (error) {
-    throw new Error(error.message);
+  if (pageResult.error) {
+    throw new Error(pageResult.error.message);
   }
 
-  const row = Array.isArray(data) ? data[0] : null;
+  if (categoryResult.error) {
+    throw new Error(categoryResult.error.message);
+  }
+
+  const row = Array.isArray(pageResult.data) ? pageResult.data[0] : null;
 
   if (!row) {
     return null;
   }
 
-  return normalizePageRow(row);
+  const page = normalizePageRow(row);
+  const categoryProgress = (categoryResult.data ?? []).map((category: PublicLanguageCategoryStatsRow) => ({
+    slug: category.slug,
+    label: category.label,
+    total_strings: toNumber(category.total_strings),
+    translated_count: toNumber(category.translated_count),
+    reviewed_count: toNumber(category.reviewed_count),
+    official_count: toNumber(category.official_count),
+    translated_percent: Number(clampPercent(toNumber(category.translated_percent)).toFixed(2)),
+    reviewed_percent: Number(clampPercent(toNumber(category.reviewed_percent)).toFixed(2)),
+    official_percent: Number(clampPercent(toNumber(category.official_percent)).toFixed(2)),
+    has_open_work: Boolean(category.has_open_work)
+  }));
+
+  return { ...page, category_progress: categoryProgress };
 }

@@ -10,14 +10,17 @@ import { supabase } from '@/services/supabase';
 import type { Database } from '@/integrations/supabase/database.types';
 import { buildPublicProfileHandle } from '@/utils/profilePaths';
 import { paths } from '@/navigation/paths';
+import { subscribeToTranslationDataRefresh } from '@/services/translations/translationRefresh';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ProfileSummary = Database['public']['Views']['public_profile_cards_view']['Row'];
+type ContributionRow = Database['public']['Functions']['my_translation_contributions']['Returns'][number];
 
 export function ProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [summary, setSummary] = useState<ProfileSummary | null>(null);
+  const [contributions, setContributions] = useState<ContributionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,9 +36,10 @@ export function ProfilePage() {
       setLoading(true);
       setError(null);
 
-      const [profileResult, summaryResult] = await Promise.all([
+      const [profileResult, summaryResult, contributionsResult] = await Promise.all([
         supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('public_profile_cards_view').select('*').eq('user_id', user.id).maybeSingle()
+        supabase.from('public_profile_cards_view').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.rpc('my_translation_contributions', { p_limit: 12 })
       ]);
 
       if (!active) {
@@ -54,13 +58,23 @@ export function ProfilePage() {
         setSummary(summaryResult.data ?? null);
       }
 
+      if (contributionsResult.error) {
+        setError(contributionsResult.error.message);
+      } else {
+        setContributions(contributionsResult.data ?? []);
+      }
+
       setLoading(false);
     }
 
     void loadProfile();
+    const unsubscribe = subscribeToTranslationDataRefresh(() => {
+      void loadProfile();
+    });
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [user]);
 
@@ -233,6 +247,33 @@ export function ProfilePage() {
           ) : null}
         </Card>
       </div>
+
+      <Card className="p-6 md:p-8">
+        <p className="pixel-label text-[10px] text-[#566172]">My contributions</p>
+        <h2 className="minecraft-title mt-3 text-3xl text-[#101114]">Saved in Supabase</h2>
+        <p className="mt-2 text-sm leading-7 text-[#566172]">
+          Every entry below is a persisted suggestion, with its real review status and version.
+        </p>
+        <div className="mt-5 grid gap-3">
+          {contributions.length ? contributions.map((contribution) => (
+            <article key={contribution.suggestion_id} className="rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="font-[var(--font-display)] text-sm font-bold text-[#101114]">{contribution.key_name}</p>
+                <Badge tone={contribution.status === 'official' ? 'success' : contribution.status === 'approved' ? 'accent' : 'neutral'}>
+                  {contribution.status}
+                </Badge>
+              </div>
+              <p className="mt-3 text-sm text-[#566172]">EN: {contribution.source_text}</p>
+              <p className="mt-1 text-sm font-bold text-[#101114]">{contribution.target_language_code}: {contribution.translated_text}</p>
+              <p className="mt-3 text-xs text-[#566172]">Source v{contribution.source_version} · Suggestion v{contribution.version_number}</p>
+            </article>
+          )) : (
+            <p className="rounded-2xl border border-[#dfe3ea] bg-[#f7f8fb] p-4 text-sm text-[#566172]">
+              Your persisted translations will appear here after a successful submission.
+            </p>
+          )}
+        </div>
+      </Card>
 
       <LanguagePreferencesEditor userId={user.id} mode="profile" />
     </section>

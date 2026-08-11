@@ -1233,6 +1233,23 @@ export type Database = {
           translation_suggestions: number;
         }[];
       };
+      public_language_category_stats: {
+        Args: {
+          p_language_code: string;
+        };
+        Returns: {
+          has_open_work: boolean;
+          label: string;
+          official_count: number;
+          official_percent: number;
+          reviewed_count: number;
+          reviewed_percent: number;
+          slug: string;
+          total_strings: number;
+          translated_count: number;
+          translated_percent: number;
+        }[];
+      };
       public_language_page: {
           Args: {
             language_code: string;
@@ -1293,6 +1310,23 @@ export type Database = {
           tags: string[];
           term: string;
           updated_at: string;
+        }[];
+      };
+      my_translation_contributions: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: {
+          created_at: string;
+          key_name: string;
+          source_text: string;
+          source_version: number;
+          status: string;
+          suggestion_id: string;
+          target_language_code: string;
+          translated_text: string;
+          updated_at: string;
+          version_number: number;
         }[];
       };
       submit_glossary_proposal: {
@@ -1439,10 +1473,11 @@ export type Database = {
         };
         translation_workspace_session: {
           Args: {
-            batch_size?: number;
-            category_slug?: string | null;
-            session_offset?: number;
-            target_language_code?: string | null;
+            p_batch_size?: number;
+            p_category_slug?: string | null;
+            p_session_offset?: number;
+            p_target_language_code?: string | null;
+            p_viewer_user_id?: string | null;
           };
           Returns: {
             batch_size: number;
@@ -1462,12 +1497,12 @@ export type Database = {
         };
         translation_workspace_submit: {
           Args: {
-            notes?: string | null;
-            rationale?: string | null;
-            suggestion_text: string;
-            supersedes_suggestion_id?: string | null;
-            target_language_code: string;
-            translation_key_id: string;
+            p_notes?: string | null;
+            p_rationale?: string | null;
+            p_suggestion_text: string;
+            p_supersedes_suggestion_id?: string | null;
+            p_target_language_code: string;
+            p_translation_key_id: string;
           };
           Returns: {
             created_at: string;

@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/hooks/useLocale';
 import { paths } from '@/navigation/paths';
 import { fetchHomePublicData, type HomePublicData } from '@/services/publicHome';
+import { subscribeToTranslationDataRefresh } from '@/services/translations/translationRefresh';
 
 const repoUrl = 'https://github.com/ithalov/site_CraftTranslate';
 
@@ -47,7 +48,31 @@ export function HomePage() {
     }
   }[locale];
 
-  useEffect(() => { let active = true; void fetchHomePublicData().then((result) => { if (active) setData(result); }).catch((loadError: unknown) => { if (active) setError(loadError instanceof Error ? loadError.message : 'Unable to load public data.'); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      void fetchHomePublicData()
+        .then((result) => {
+          if (active) {
+            setData(result);
+            setError(null);
+          }
+        })
+        .catch((loadError: unknown) => {
+          if (active) setError(loadError instanceof Error ? loadError.message : 'Unable to load public data.');
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+
+    load();
+    const unsubscribe = subscribeToTranslationDataRefresh(load);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   const stats = data?.stats ?? { contributors: 0, totalTranslations: 0, totalReviews: 0, totalBadges: 0, activeLanguages: 0, averageProgress: 0, approvedSuggestions: 0 };
   const featuredLanguages = useMemo(() => data?.languages.slice(0, 4) ?? [], [data]);

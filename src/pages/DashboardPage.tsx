@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { ProtectedFeaturePage } from '@/pages/ProtectedFeaturePage';
+import { fetchPublicStatusData, type PublicStatusData } from '@/services/publicStatus';
+import { subscribeToTranslationDataRefresh } from '@/services/translations/translationRefresh';
 
 export function DashboardPage() {
   const { locale } = useLocale();
+  const [status, setStatus] = useState<PublicStatusData | null>(null);
   const copy = {
     'pt-BR': {
       eyebrow: 'Painel', title: 'Central de comando', description: 'Acompanhe seu espaco de traducao, atividades e proximas areas de trabalho.',
@@ -36,5 +40,29 @@ export function DashboardPage() {
     }
   }[locale];
 
-  return <ProtectedFeaturePage {...copy} />;
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      void fetchPublicStatusData().then((data) => {
+        if (active) setStatus(data);
+      }).catch(() => undefined);
+    };
+
+    load();
+    const unsubscribe = subscribeToTranslationDataRefresh(load);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const liveProgress = status
+    ? [
+        { label: locale === 'pt-BR' ? 'Traduzido' : locale === 'es' ? 'Traducido' : 'Translated', value: status.summary.translated_percent },
+        { label: locale === 'pt-BR' ? 'Revisado' : locale === 'es' ? 'Revisado' : 'Reviewed', value: status.summary.reviewed_percent },
+        { label: locale === 'pt-BR' ? 'Oficial' : locale === 'es' ? 'Oficial' : 'Official', value: status.summary.official_percent }
+      ]
+    : copy.progress;
+
+  return <ProtectedFeaturePage {...copy} progress={liveProgress} />;
 }

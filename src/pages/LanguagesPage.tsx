@@ -13,6 +13,7 @@ import {
   fetchPublicLanguageCatalog,
   type PublicLanguageCatalogItem
 } from '@/services/publicLanguages';
+import { subscribeToTranslationDataRefresh } from '@/services/translations/translationRefresh';
 
 type SortKey = 'progress' | 'collaborators' | 'official' | 'name';
 type DirectionFilter = 'all' | 'ltr' | 'rtl';
@@ -261,9 +262,13 @@ export function LanguagesPage() {
     }
 
     void load();
+    const unsubscribe = subscribeToTranslationDataRefresh(() => {
+      void load();
+    });
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [copy.empty]);
 

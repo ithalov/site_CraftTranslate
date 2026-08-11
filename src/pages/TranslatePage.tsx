@@ -535,7 +535,7 @@ export function TranslatePage() {
     return validateProtectedTerms(translation, currentItem.protected_terms);
   }, [currentItem, translation]);
 
-  async function loadSession(offset = 0, nextSession = false) {
+  async function loadSession(offset = 0, nextSession = false, resetCounters = true) {
     try {
       setError(null);
       setLoading(nextSession ? false : true);
@@ -551,8 +551,10 @@ export function TranslatePage() {
 
       setSession(result);
       setActiveIndex(0);
-      setSubmittedCount(0);
-      setSkippedCount(0);
+      if (resetCounters) {
+        setSubmittedCount(0);
+        setSkippedCount(0);
+      }
 
       const firstItem = result?.items[0] ?? null;
       setTranslation(firstItem?.my_suggestion?.suggestion_text ?? firstItem?.auto_suggestion?.suggestion_text ?? '');
@@ -806,19 +808,9 @@ export function TranslatePage() {
         supersedesSuggestionId: options?.supersedesSuggestionId ?? null
       });
 
+      // Only replace the current item after Supabase confirms the insert.
+      await loadSession(0, false, false);
       setSubmittedCount((value) => value + 1);
-
-      if (activeIndex + 1 < session.items.length) {
-        setActiveIndex((value) => value + 1);
-        return;
-      }
-
-      if (session.has_more) {
-        await goToNextSession();
-        return;
-      }
-
-      setSession((current) => (current ? { ...current, items: [] } : current));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : copy.error);
     } finally {

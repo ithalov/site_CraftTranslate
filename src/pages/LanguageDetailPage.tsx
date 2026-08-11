@@ -17,6 +17,7 @@ import {
   type PublicLanguagePage as PublicLanguageData,
   type PublicLanguageTeamSection
 } from '@/services/publicLanguages';
+import { subscribeToTranslationDataRefresh } from '@/services/translations/translationRefresh';
 
 type RoleKey = 'translator' | 'trusted_translator' | 'reviewer' | 'language_moderator';
 type CategoryKey = 'general' | 'minecraft' | 'pvp' | 'mmorpg' | 'economy' | 'trading' | 'commands' | 'system_messages' | 'mods' | 'other';
@@ -498,9 +499,13 @@ export function LanguageDetailPage() {
     }
 
     void load();
+    const unsubscribe = subscribeToTranslationDataRefresh(() => {
+      void load();
+    });
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [code, copy.error]);
 

@@ -6,6 +6,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { RouteLoadingScreen } from '@/components/layout/RouteLoadingScreen';
 import { useLocale } from '@/hooks/useLocale';
 import { fetchPublicStatusData, type PublicStatusData } from '@/services/publicStatus';
+import { subscribeToTranslationDataRefresh } from '@/services/translations/translationRefresh';
 
 type StatusCopy = {
   eyebrow: string;
@@ -160,25 +161,32 @@ export function StatusPage() {
   useEffect(() => {
     let active = true;
 
-    void fetchPublicStatusData()
-      .then((result) => {
-        if (active) {
-          setData(result);
-        }
-      })
-      .catch((loadError: unknown) => {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : copy.error);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+    const load = () => {
+      void fetchPublicStatusData()
+        .then((result) => {
+          if (active) {
+            setData(result);
+            setError(null);
+          }
+        })
+        .catch((loadError: unknown) => {
+          if (active) {
+            setError(loadError instanceof Error ? loadError.message : copy.error);
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setLoading(false);
+          }
+        });
+    };
+
+    load();
+    const unsubscribe = subscribeToTranslationDataRefresh(load);
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [copy.error]);
 

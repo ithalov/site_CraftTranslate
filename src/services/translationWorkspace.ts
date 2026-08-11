@@ -1,27 +1,9 @@
 import { supabase } from '@/services/supabase';
-import translationSeed from '@/data/translation-seed.json';
-import { loadWorkspaceSourceStrings } from '@/services/translationContent';
+import { notifyTranslationDataRefresh } from '@/services/translations/translationRefresh';
 import type { Database, Json } from '@/integrations/supabase/database.types';
 
 type TranslationWorkspaceSessionRow = Database['public']['Functions']['translation_workspace_session']['Returns'][number];
 type PublicLanguageGlossaryRow = Database['public']['Functions']['public_language_glossary']['Returns'][number];
-type TranslationSeed = typeof translationSeed;
-type TranslationSeedLanguage = TranslationSeed['languages'][number];
-type TranslationSeedString = {
-  id: string;
-  key_name: string;
-  source_text: string;
-  category: string;
-  subcategory: string | null;
-  theme: string | null;
-  context: string;
-  notes: string;
-  protected_variables: string[];
-  protected_terms: string[];
-  supported_targets: string[];
-};
-
-const LOCAL_WORKSPACE_SUGGESTIONS_KEY = 'chattranslate-local-workspace-suggestions-v1';
 
 export type TranslationWorkspaceSuggestion = {
   suggestion_id: string;
@@ -136,249 +118,6 @@ function toStringArray(value: unknown) {
   }
 
   return value.map((item) => String(item));
-}
-
-function normalizeSlug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/_/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]+/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-function hashSeed(value: string) {
-  let hash = 2166136261;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
-}
-
-function getPersonalizedRotation(viewerUserId: string | null | undefined, languageCode: string, categorySlug?: string | null, total = 0) {
-  if (!viewerUserId || total <= 0) {
-    return 0;
-  }
-
-  const seed = `${viewerUserId}:${languageCode}:${normalizeSlug(categorySlug ?? 'all')}`;
-  return hashSeed(seed) % total;
-}
-
-function getSeedLanguage(code: string): TranslationSeedLanguage | null {
-  const normalizedCode = code.trim().toLowerCase();
-
-  if (normalizedCode.length === 0) {
-    return translationSeed.languages[0] ?? null;
-  }
-
-  return translationSeed.languages.find((language) => language.code.toLowerCase() === normalizedCode) ?? translationSeed.languages[0] ?? null;
-}
-
-async function getSeedStrings(languageCode: string, categorySlug?: string | null): Promise<TranslationSeedString[]> {
-  const targetLanguage = getSeedLanguage(languageCode);
-
-  if (!targetLanguage) {
-    return [];
-  }
-
-  const allSeedStrings = await loadWorkspaceSourceStrings();
-  const normalizedCategory = normalizeSlug(categorySlug ?? '');
-  const isWildcardCategory = normalizedCategory.length === 0 || normalizedCategory === 'all' || normalizedCategory === 'general';
-
-  if (isWildcardCategory) {
-    return allSeedStrings.filter((entry) =>
-      entry.supported_targets.some((code) => code.toLowerCase() === targetLanguage.code.toLowerCase())
-    );
-  }
-
-  return allSeedStrings.filter((entry) => {
-    const matchesTarget = entry.supported_targets.some((code) => code.toLowerCase() === targetLanguage.code.toLowerCase());
-      const matchesCategory =
-        normalizeSlug(entry.category) === normalizedCategory ||
-        normalizeSlug(entry.subcategory ?? '') === normalizedCategory ||
-      normalizeSlug(entry.theme ?? '') === normalizedCategory;
-
-    return matchesTarget && matchesCategory;
-  });
-}
-
-function readLocalWorkspaceSuggestions(): TranslationWorkspaceSuggestion[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(LOCAL_WORKSPACE_SUGGESTIONS_KEY);
-
-    if (!raw) {
-      return [];
-    }
-
-    const parsed = JSON.parse(raw) as unknown;
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .map((item) => parseSuggestion(item as Json))
-      .filter((item): item is TranslationWorkspaceSuggestion => item !== null && item.suggestion_id.length > 0);
-  } catch {
-    return [];
-  }
-}
-
-function writeLocalWorkspaceSuggestions(suggestions: TranslationWorkspaceSuggestion[]) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(LOCAL_WORKSPACE_SUGGESTIONS_KEY, JSON.stringify(suggestions));
-}
-
-function upsertLocalWorkspaceSuggestion(params: {
-  translationKeyId: string;
-  targetLanguageCode: string;
-  suggestionText: string;
-  rationale?: string | null;
-  notes?: string | null;
-}): TranslationWorkspaceSuggestion {
-  const suggestions = readLocalWorkspaceSuggestions();
-  const now = new Date().toISOString();
-  const existingIndex = suggestions.findIndex(
-    (entry) =>
-      entry.suggestion_id === `${params.translationKeyId}:${params.targetLanguageCode}` ||
-      entry.updated_at === `${params.translationKeyId}:${params.targetLanguageCode}`
-  );
-
-  const versionNumber = existingIndex >= 0 ? suggestions[existingIndex].version_number + 1 : 1;
-
-  const payload: TranslationWorkspaceSuggestion = {
-    suggestion_id: `${params.translationKeyId}:${params.targetLanguageCode}`,
-    version_number: versionNumber,
-    status: 'pending',
-    suggestion_text: params.suggestionText,
-    author_id: 'local',
-    author_name: 'You',
-    author_username: 'local',
-    created_at: now,
-    rationale: params.rationale ?? null,
-    notes: params.notes ?? null,
-    updated_at: now
-  };
-
-  if (existingIndex >= 0) {
-    suggestions[existingIndex] = payload;
-  } else {
-    suggestions.push(payload);
-  }
-
-  writeLocalWorkspaceSuggestions(suggestions);
-  return payload;
-}
-
-function findLocalDuplicate(params: {
-  translationKeyId: string;
-  targetLanguageCode: string;
-  suggestionText: string;
-}) {
-  const normalizedSuggestion = normalizeSearchText(params.suggestionText);
-  const localSuggestion = readLocalWorkspaceSuggestions().find(
-    (entry) =>
-      entry.suggestion_id === `${params.translationKeyId}:${params.targetLanguageCode}` &&
-      normalizeSearchText(entry.suggestion_text) === normalizedSuggestion
-  );
-
-  if (!localSuggestion) {
-    return null;
-  }
-
-  return {
-    suggestion_id: localSuggestion.suggestion_id,
-    version_number: localSuggestion.version_number,
-    status: localSuggestion.status,
-    suggestion_text: localSuggestion.suggestion_text,
-    author_id: localSuggestion.author_id ?? null,
-    author_name: localSuggestion.author_name ?? null,
-    author_username: localSuggestion.author_username ?? null,
-    created_at: localSuggestion.created_at ?? null,
-    match_kind: 'equivalent'
-  } satisfies TranslationWorkspaceDuplicateSuggestion;
-}
-
-function buildSeedItem(item: TranslationSeedString, targetLanguage: TranslationSeedLanguage): TranslationWorkspaceItem {
-  const localSuggestion = readLocalWorkspaceSuggestions().find(
-    (entry) => entry.suggestion_id === `seed:${item.id}:${targetLanguage.code}`
-  );
-
-  return {
-    translation_key_id: `seed:${item.id}`,
-    key_name: item.key_name,
-    original_text: item.source_text,
-    category: item.category,
-    subcategory: item.subcategory ?? null,
-    context: item.context,
-    protected_variables: item.protected_variables ?? [],
-    protected_terms: item.protected_terms ?? [],
-    source_language_id: 'seed-en',
-    source_language_code: 'en',
-    source_language_name: 'English',
-    source_language_native_name: 'English',
-    source_language_emoji: 'EN',
-    target_language_id: `seed-${targetLanguage.code}`,
-    target_language_code: targetLanguage.code,
-    target_language_name: targetLanguage.name,
-    target_language_native_name: targetLanguage.native_name,
-    target_language_emoji: targetLanguage.emoji ?? null,
-    auto_suggestion: null,
-    my_suggestion: localSuggestion ?? null,
-    glossary_terms: []
-  };
-}
-
-async function buildSeedSession(
-  targetLanguageCode: string,
-  categorySlug?: string | null,
-  batchSize = 10,
-  sessionOffset = 0,
-  viewerUserId?: string | null
-): Promise<TranslationWorkspaceSession | null> {
-  const targetLanguage = getSeedLanguage(targetLanguageCode);
-
-  if (!targetLanguage) {
-    return null;
-  }
-
-  const filteredStrings = await getSeedStrings(targetLanguage.code, categorySlug);
-  const rotation = getPersonalizedRotation(viewerUserId, targetLanguage.code, categorySlug, filteredStrings.length);
-  const normalizedBatchSize = Math.max(1, Math.min(batchSize || 10, 20));
-  const normalizedSessionOffset = Math.max(0, sessionOffset || 0);
-  const orderedStrings = filteredStrings.length > 0
-    ? [...filteredStrings.slice(rotation), ...filteredStrings.slice(0, rotation)]
-    : [];
-  const items = orderedStrings
-    .slice(normalizedSessionOffset, normalizedSessionOffset + normalizedBatchSize)
-    .map((item) => buildSeedItem(item, targetLanguage));
-
-  return {
-    session_id: `seed:${targetLanguage.code}:${normalizeSlug(categorySlug ?? 'all')}:${rotation}:${normalizedSessionOffset}`,
-    target_language_id: `seed-${targetLanguage.code}`,
-    target_language_code: targetLanguage.code,
-    target_language_name: targetLanguage.name,
-    target_language_native_name: targetLanguage.native_name,
-    target_language_emoji: targetLanguage.emoji ?? null,
-    category_slug: normalizeSlug(categorySlug ?? 'all') || 'all',
-    total_available: filteredStrings.length,
-    loaded_count: items.length,
-    batch_size: normalizedBatchSize,
-    session_offset: normalizedSessionOffset,
-    has_more: normalizedSessionOffset + normalizedBatchSize < filteredStrings.length,
-    items
-  };
 }
 
 function normalizeSearchText(value: string) {
@@ -738,65 +477,37 @@ export async function fetchTranslationWorkspaceSession(params: {
   const sessionOffset = params.sessionOffset ?? 0;
   const viewerUserId = params.viewerUserId ?? null;
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.rpc('translation_workspace_session', {
-        target_language_code: normalizedTargetLanguageCode || null,
-        category_slug: normalizedCategorySlug,
-        batch_size: batchSize,
-        session_offset: sessionOffset,
-        viewer_user_id: viewerUserId
-      });
-
-      if (!error) {
-        const row = Array.isArray(data) ? data[0] : null;
-
-        if (row) {
-          let glossaryTerms: TranslationWorkspaceGlossaryTerm[] = [];
-
-          try {
-            glossaryTerms = await fetchLanguageGlossary(row.target_language_code);
-          } catch {
-            glossaryTerms = [];
-          }
-
-          const normalized = normalizeSessionRow(row, glossaryTerms);
-
-          if (normalized.items.length > 0 || normalized.total_available > 0) {
-            return normalized;
-          }
-        }
-      }
-    } catch {
-      // Fall back to the local queue below when the remote RPC is not stable.
-    }
+  if (!supabase) {
+    throw new Error('Supabase nao esta configurado. A fila nao pode ser carregada sem o banco oficial.');
   }
+
+  const { data, error } = await supabase.rpc('translation_workspace_session', {
+    p_target_language_code: normalizedTargetLanguageCode || null,
+    p_category_slug: normalizedCategorySlug,
+    p_batch_size: batchSize,
+    p_session_offset: sessionOffset,
+    p_viewer_user_id: viewerUserId
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+
+  if (!row) {
+    return null;
+  }
+
+  let glossaryTerms: TranslationWorkspaceGlossaryTerm[] = [];
 
   try {
-    return await buildSeedSession(normalizedTargetLanguageCode, normalizedCategorySlug, batchSize, sessionOffset, viewerUserId);
+    glossaryTerms = await fetchLanguageGlossary(row.target_language_code);
   } catch {
-    const targetLanguage = getSeedLanguage(normalizedTargetLanguageCode);
-
-    if (!targetLanguage) {
-      return null;
-    }
-
-    return {
-      session_id: `fallback:${targetLanguage.code}:${normalizeSlug(normalizedCategorySlug ?? 'all')}`,
-      target_language_id: `seed-${targetLanguage.code}`,
-      target_language_code: targetLanguage.code,
-      target_language_name: targetLanguage.name,
-      target_language_native_name: targetLanguage.native_name,
-      target_language_emoji: targetLanguage.emoji ?? null,
-      category_slug: normalizeSlug(normalizedCategorySlug ?? 'all') || 'all',
-      total_available: 0,
-      loaded_count: 0,
-      batch_size: Math.max(1, Math.min(batchSize || 10, 20)),
-      session_offset: Math.max(0, sessionOffset || 0),
-      has_more: false,
-      items: []
-    };
+    // Glossary loading is supplementary; it never changes queue persistence.
   }
+
+  return normalizeSessionRow(row, glossaryTerms);
 }
 
 export async function findTranslationWorkspaceDuplicate(params: {
@@ -804,8 +515,8 @@ export async function findTranslationWorkspaceDuplicate(params: {
   targetLanguageCode: string;
   suggestionText: string;
 }): Promise<TranslationWorkspaceDuplicateSuggestion | null> {
-  if (params.translationKeyId.startsWith('seed:') || !supabase) {
-    return findLocalDuplicate(params);
+  if (!supabase) {
+    throw new Error('Supabase nao esta configurado.');
   }
 
   const { data, error } = await supabase.rpc('translation_workspace_detect_duplicate', {
@@ -856,47 +567,25 @@ export async function submitTranslationWorkspaceSuggestion(params: {
   status: string;
   created_at: string;
 } | null> {
-  if (params.translationKeyId.startsWith('seed:') || !supabase) {
-    const localDraft = upsertLocalWorkspaceSuggestion({
-      translationKeyId: params.translationKeyId,
-      targetLanguageCode: params.targetLanguageCode,
-      suggestionText: params.suggestionText,
-      rationale: params.rationale ?? null,
-      notes: params.notes ?? null
-    });
+  if (params.translationKeyId.startsWith('seed:')) {
+    throw new Error('Esta string ainda nao foi importada para o Supabase e nao pode ser enviada.');
+  }
 
-    return {
-      suggestion_id: localDraft.suggestion_id,
-      version_number: localDraft.version_number,
-      status: localDraft.status,
-      created_at: localDraft.created_at ?? new Date().toISOString()
-    };
+  if (!supabase) {
+    throw new Error('Supabase nao esta configurado. Sua traducao nao foi salva.');
   }
 
   const { data, error } = await supabase.rpc('translation_workspace_submit', {
-    translation_key_id: params.translationKeyId,
-    target_language_code: params.targetLanguageCode,
-    suggestion_text: params.suggestionText,
-    rationale: params.rationale ?? null,
-    notes: params.notes ?? null,
-    supersedes_suggestion_id: params.supersedesSuggestionId ?? null
+    p_translation_key_id: params.translationKeyId,
+    p_target_language_code: params.targetLanguageCode,
+    p_suggestion_text: params.suggestionText,
+    p_rationale: params.rationale ?? null,
+    p_notes: params.notes ?? null,
+    p_supersedes_suggestion_id: params.supersedesSuggestionId ?? null
   });
 
   if (error) {
-    const localDraft = upsertLocalWorkspaceSuggestion({
-      translationKeyId: params.translationKeyId,
-      targetLanguageCode: params.targetLanguageCode,
-      suggestionText: params.suggestionText,
-      rationale: params.rationale ?? null,
-      notes: params.notes ?? null
-    });
-
-    return {
-      suggestion_id: localDraft.suggestion_id,
-      version_number: localDraft.version_number,
-      status: localDraft.status,
-      created_at: localDraft.created_at ?? new Date().toISOString()
-    };
+    throw new Error(error.message);
   }
 
   const row = Array.isArray(data) ? data[0] : null;
@@ -905,10 +594,13 @@ export async function submitTranslationWorkspaceSuggestion(params: {
     return null;
   }
 
-  return {
+  const result = {
     suggestion_id: row.suggestion_id,
     version_number: row.version_number,
     status: row.status,
     created_at: row.created_at
   };
+
+  notifyTranslationDataRefresh();
+  return result;
 }
