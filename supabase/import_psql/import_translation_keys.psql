@@ -1,0 +1,111 @@
+\set ON_ERROR_STOP on
+\echo 'Importando 10000 strings com \\copy...'
+
+begin;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from public.languages
+    where lower(code) = 'en'
+  ) then
+    raise exception 'Idioma EN nao encontrado em public.languages.';
+  end if;
+end $$;
+
+create temporary table translation_keys_import_stage (
+  key_name text not null,
+  original_text text not null,
+  category text not null,
+  subcategory text,
+  context text not null,
+  notes text,
+  protected_variables_json text,
+  protected_terms_json text,
+  supported_targets_json text
+) on commit drop;
+
+\copy translation_keys_import_stage (
+  key_name,
+  original_text,
+  category,
+  subcategory,
+  context,
+  notes,
+  protected_variables_json,
+  protected_terms_json,
+  supported_targets_json
+) from 'supabase/import_psql/translation_keys_import.csv' with (format csv, header true, encoding 'UTF8')
+
+with parsed as (
+  select
+    s.key_name,
+    s.original_text,
+    s.category,
+    nullif(s.subcategory, '') as subcategory,
+    nullif(s.context, '') as context,
+    nullif(s.notes, '') as notes,
+    coalesce(
+      (
+        select array_agg(value)
+        from jsonb_array_elements_text(nullif(s.protected_variables_json, '')::jsonb) as value
+      ),
+      '{}'::text[]
+    ) as protected_variables,
+    coalesce(
+      (
+        select array_agg(value)
+        from jsonb_array_elements_text(nullif(s.protected_terms_json, '')::jsonb) as value
+      ),
+      '{}'::text[]
+    ) as protected_terms,
+    coalesce(
+      (
+        select array_agg(value)
+        from jsonb_array_elements_text(nullif(s.supported_targets_json, '')::jsonb) as value
+      ),
+      '{}'::text[]
+    ) as supported_targets
+  from translation_keys_import_stage s
+)
+insert into public.translation_keys (
+  key_name,
+  source_language_id,
+  original_text,
+  category,
+  subcategory,
+  context,
+  protected_variables,
+  protected_terms,
+  notes,
+  supported_targets,
+  status
+)
+select
+  p.key_name,
+  (select id from public.languages where lower(code) = 'en' limit 1),
+  p.original_text,
+  p.category,
+  p.subcategory,
+  p.context,
+  p.protected_variables,
+  p.protected_terms,
+  p.notes,
+  p.supported_targets,
+  'active'::public.translation_key_status
+from parsed p
+on conflict (key_name) do update set
+  source_language_id = excluded.source_language_id,
+  original_text = excluded.original_text,
+  category = excluded.category,
+  subcategory = excluded.subcategory,
+  context = excluded.context,
+  protected_variables = excluded.protected_variables,
+  protected_terms = excluded.protected_terms,
+  notes = excluded.notes,
+  supported_targets = excluded.supported_targets,
+  status = excluded.status,
+  updated_at = timezone('utc', now());
+
+commit;

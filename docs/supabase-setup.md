@@ -380,3 +380,103 @@ Quando terminar esta parte, o Supabase já deve estar pronto para o app usar:
 - ranking e progresso expostos com segurança
 
 Depois disso, o restante do desenvolvimento pode usar o banco sem precisar refazer a base.
+
+## 14. Importacao rapida de 10 mil strings com `psql`
+
+Se voce quer subir tudo em uma tacada so, a forma mais rapida e gerar um CSV e importar com `psql` usando `\\copy`.
+
+### Gerar os arquivos de importacao
+
+```bash
+npm run generate:translation-psql
+```
+
+Isso cria:
+
+- `supabase/import_psql/translation_keys_import.csv`
+- `supabase/import_psql/import_translation_keys.psql`
+
+### Rodar a importacao
+
+Use a connection string do banco do Supabase:
+
+```bash
+psql "postgresql://postgres:SUA_SENHA@db.SEU-PROJETO.supabase.co:5432/postgres" -f supabase/import_psql/import_translation_keys.psql
+```
+
+Se quiser um atalho no Windows, use o script da raiz do projeto:
+
+```powershell
+.\import.ps1
+```
+
+Ou, para dar dois cliques no Windows:
+
+```text
+import.cmd
+```
+
+Se preferir passar a connection string sem digitar no prompt:
+
+```powershell
+$env:SUPABASE_DATABASE_URL="postgresql://postgres:SUA_SENHA@db.SEU-PROJETO.supabase.co:5432/postgres"
+.\import.ps1
+```
+
+### Vantagens desse caminho
+
+- o `\\copy` joga os dados muito mais rapido que inserts grandes no SQL Editor
+- a tabela temporaria reduz o peso durante a carga
+- o `ON CONFLICT (key_name)` evita duplicar os dados se voce rodar de novo
+
+### Observacao importante
+
+O script assume que existe um idioma com `code = 'en'` em `public.languages`.
+Se no seu seed de idiomas esse codigo estiver diferente, ajuste a verificacao dentro do arquivo `.psql` antes de executar.
+
+## 15. Opcao mais simples: um unico arquivo `.sql`
+
+Se voce nao quer instalar nada e quer fazer tudo pelo navegador, use este caminho.
+
+### Gerar o arquivo unico
+
+```bash
+npm run generate:translation-one-shot
+```
+
+Isso cria:
+
+- `supabase/import_one_shot/import_translation_keys.sql`
+
+### Como aplicar
+
+1. Abra o arquivo gerado.
+2. Copie todo o conteudo.
+3. Cole no **SQL Editor** do Supabase.
+4. Execute uma vez.
+
+### Quando usar essa opcao
+
+Use essa opcao se:
+
+- voce quer o caminho mais simples possivel
+- nao quer instalar `psql`
+- prefere usar apenas o navegador
+
+### Observacao
+
+Esse arquivo ainda pode ficar grande, mas ele ja vem dividido em lotes internos para aliviar a execucao.
+
+## 16. Um unico arquivo juntando os 20 lotes
+
+Se voce ja tem os arquivos `translation_keys_batch_001.sql` ate `translation_keys_batch_020.sql`, pode juntar tudo em um arquivo master:
+
+```bash
+npm run merge:translation-batches
+```
+
+Ele gera:
+
+- `supabase/import_batches/import_translation_keys_all.sql`
+
+Esse arquivo e o mais pratico para colar no SQL Editor quando voce ja tem os lotes prontos.

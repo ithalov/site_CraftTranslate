@@ -1,0 +1,19 @@
+{
+  "source": "data/import/chattranslate_10000_source_strings.json",
+  "output_dir": "supabase/import_one_shot",
+  "batch_size": 500,
+  "total_rows": 10000,
+  "total_batches": 20,
+  "files": [
+    "import_translation_keys.sql"
+  ],
+  "supported_targets_default": [
+    "pt-BR",
+    "fr",
+    "es",
+    "de",
+    "ru",
+    "ko",
+    "ja"
+  ]
+}

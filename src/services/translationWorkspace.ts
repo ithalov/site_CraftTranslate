@@ -768,7 +768,31 @@ export async function fetchTranslationWorkspaceSession(params: {
     }
   }
 
-  return buildSeedSession(normalizedTargetLanguageCode, normalizedCategorySlug, batchSize, sessionOffset, viewerUserId);
+  try {
+    return await buildSeedSession(normalizedTargetLanguageCode, normalizedCategorySlug, batchSize, sessionOffset, viewerUserId);
+  } catch {
+    const targetLanguage = getSeedLanguage(normalizedTargetLanguageCode);
+
+    if (!targetLanguage) {
+      return null;
+    }
+
+    return {
+      session_id: `fallback:${targetLanguage.code}:${normalizeSlug(normalizedCategorySlug ?? 'all')}`,
+      target_language_id: `seed-${targetLanguage.code}`,
+      target_language_code: targetLanguage.code,
+      target_language_name: targetLanguage.name,
+      target_language_native_name: targetLanguage.native_name,
+      target_language_emoji: targetLanguage.emoji ?? null,
+      category_slug: normalizeSlug(normalizedCategorySlug ?? 'all') || 'all',
+      total_available: 0,
+      loaded_count: 0,
+      batch_size: Math.max(1, Math.min(batchSize || 10, 20)),
+      session_offset: Math.max(0, sessionOffset || 0),
+      has_more: false,
+      items: []
+    };
+  }
 }
 
 export async function findTranslationWorkspaceDuplicate(params: {
