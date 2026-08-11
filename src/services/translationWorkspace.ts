@@ -739,32 +739,36 @@ export async function fetchTranslationWorkspaceSession(params: {
   const viewerUserId = params.viewerUserId ?? null;
 
   if (supabase) {
-    const { data, error } = await supabase.rpc('translation_workspace_session', {
-      target_language_code: normalizedTargetLanguageCode || null,
-      category_slug: normalizedCategorySlug,
-      batch_size: batchSize,
-      session_offset: sessionOffset,
-      viewer_user_id: viewerUserId
-    });
+    try {
+      const { data, error } = await supabase.rpc('translation_workspace_session', {
+        target_language_code: normalizedTargetLanguageCode || null,
+        category_slug: normalizedCategorySlug,
+        batch_size: batchSize,
+        session_offset: sessionOffset,
+        viewer_user_id: viewerUserId
+      });
 
-    if (!error) {
-      const row = Array.isArray(data) ? data[0] : null;
+      if (!error) {
+        const row = Array.isArray(data) ? data[0] : null;
 
-      if (row) {
-        let glossaryTerms: TranslationWorkspaceGlossaryTerm[] = [];
+        if (row) {
+          let glossaryTerms: TranslationWorkspaceGlossaryTerm[] = [];
 
-        try {
-          glossaryTerms = await fetchLanguageGlossary(row.target_language_code);
-        } catch {
-          glossaryTerms = [];
-        }
+          try {
+            glossaryTerms = await fetchLanguageGlossary(row.target_language_code);
+          } catch {
+            glossaryTerms = [];
+          }
 
-        const normalized = normalizeSessionRow(row, glossaryTerms);
+          const normalized = normalizeSessionRow(row, glossaryTerms);
 
-        if (normalized.items.length > 0 || normalized.total_available > 0) {
-          return normalized;
+          if (normalized.items.length > 0 || normalized.total_available > 0) {
+            return normalized;
+          }
         }
       }
+    } catch {
+      // Fall back to the local queue below when the remote RPC is not stable.
     }
   }
 
@@ -879,7 +883,20 @@ export async function submitTranslationWorkspaceSuggestion(params: {
   });
 
   if (error) {
-    throw new Error(error.message);
+    const localDraft = upsertLocalWorkspaceSuggestion({
+      translationKeyId: params.translationKeyId,
+      targetLanguageCode: params.targetLanguageCode,
+      suggestionText: params.suggestionText,
+      rationale: params.rationale ?? null,
+      notes: params.notes ?? null
+    });
+
+    return {
+      suggestion_id: localDraft.suggestion_id,
+      version_number: localDraft.version_number,
+      status: localDraft.status,
+      created_at: localDraft.created_at ?? new Date().toISOString()
+    };
   }
 
   const row = Array.isArray(data) ? data[0] : null;
